@@ -1,0 +1,6 @@
+{
+  "name": "Aquagenda",
+  "description": "Aplicativo para treinos de natação com acompanhamento em tempo real, execução de séries e métricas de desempenho.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
