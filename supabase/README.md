@@ -49,7 +49,7 @@ O Supabase só aceita um novo envio para o mesmo e-mail depois de 60 segundos, e
 
 ### Modelos de e-mail em português
 
-O Supabase só deixa editar os modelos com **SMTP próprio**. O projeto usa o Brevo, configurado em *Authentication → Emails → SMTP Settings*. Com o SMTP ligado, o limite padrão é de 30 e-mails por hora (ajustável em *Rate Limits*).
+O Supabase só deixa editar os modelos com **SMTP próprio**. O projeto usa um servidor SMTP particular, configurado em *Authentication → Emails → SMTP Settings*. Com o SMTP ligado, o limite padrão é de 30 e-mails por hora (ajustável em *Rate Limits*).
 
 Os modelos de `supabase/templates/` estão aplicados em *Authentication → Emails → Templates* (desde 13/09/2026). O assunto de cada um está no comentário do topo do arquivo:
 
