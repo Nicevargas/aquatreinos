@@ -11,6 +11,19 @@ Este diretório contém a estrutura completa de banco de dados, migrações e po
 - **`ciclos_treino`** e **`treinos_ciclo`**: os treinos sugeridos. É o programa do carrossel "Cada Dia 1 Treino" do @natacaocriativa: 28 dias × 3 níveis = 84 treinos. Leitura pública, escrita só pelo SQL Editor.
 - **`treinos_sugeridos(p_data, p_level)`**: função que devolve o treino sugerido de uma data, com a mesma conta do carrossel, `(data - âncora) mod 28`. O treino de hoje no app é sempre o do carrossel publicado hoje, sem nenhum processo diário.
 
+## Segurança da tabela `workouts`
+
+A migração inicial deixava a chave pública do app (anon) criar, alterar e sobrescrever os treinos públicos (sem dono). Também deixava um usuário transformar um treino dele em público. `supabase/migrations/20260913000002_workouts_rls_seguranca.sql` fecha isso:
+
+| Ação | Quem pode |
+|---|---|
+| Ler | os próprios treinos e os públicos |
+| Criar | só usuário logado, com o próprio `user_id` (preenchido sozinho) |
+| Alterar | só os próprios, sem trocar o dono |
+| Excluir | só os próprios |
+
+Treinos públicos passam a ser mantidos só pelo SQL Editor. O app não é afetado, porque só lê essa tabela. A migração se confere no fim: se a chave pública ainda conseguir escrever, ela desfaz tudo.
+
 ## Treinos sugeridos (carrossel → banco → app)
 
 A fonte é o `treinos.json` do repositório [natacao-treinos](https://github.com/Nicevargas/natacao-treinos), o mesmo arquivo que gera o carrossel do Instagram.
