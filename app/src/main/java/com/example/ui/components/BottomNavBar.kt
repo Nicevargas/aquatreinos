@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pool
 import androidx.compose.material.icons.outlined.Home
@@ -64,7 +66,7 @@ fun BottomNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(vertical = 8.dp, horizontal = 16.dp),
+                .padding(vertical = 8.dp, horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -84,6 +86,15 @@ fun BottomNavBar(
                 isSelected = selectedTab == AppNavTab.WORKOUTS,
                 testTag = "nav_tab_workouts",
                 onClick = { onTabSelected(AppNavTab.WORKOUTS) }
+            )
+
+            NavBarItem(
+                label = "Meus treinos",
+                selectedIcon = Icons.Filled.Bookmark,
+                unselectedIcon = Icons.Outlined.BookmarkBorder,
+                isSelected = selectedTab == AppNavTab.MY_WORKOUTS,
+                testTag = "nav_tab_my_workouts",
+                onClick = { onTabSelected(AppNavTab.MY_WORKOUTS) }
             )
 
             NavBarItem(
@@ -117,7 +128,7 @@ private fun NavBarItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 18.dp, vertical = 6.dp)
+            .padding(horizontal = 6.dp, vertical = 6.dp)
             .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

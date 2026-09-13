@@ -53,6 +53,24 @@ object DataCivil {
         return epochDay(partes[0].toInt(), partes[1].toInt(), partes[2].toInt())
     }
 
+    fun paraBr(epochDay: Long): String {
+        val (ano, mes, dia) = civil(epochDay)
+        return String.format(Locale.US, "%02d/%02d/%04d", dia, mes, ano)
+    }
+
+    /** "13/09/2026" -> epoch day; null se não for uma data de calendário de verdade. */
+    fun lerDataBr(texto: String): Long? {
+        val partes = texto.trim().split("/")
+        if (partes.size != 3 || partes[2].length != 4) return null
+        val dia = partes[0].toIntOrNull() ?: return null
+        val mes = partes[1].toIntOrNull() ?: return null
+        val ano = partes[2].toIntOrNull() ?: return null
+        if (mes !in 1..12 || dia !in 1..31) return null
+        val epoch = epochDay(ano, mes, dia)
+        // 31/02 vira 03/03 na conta; a volta denuncia a data que não existe.
+        return epoch.takeIf { civil(it) == Triple(ano, mes, dia) }
+    }
+
     fun hoje(agoraMillis: Long = System.currentTimeMillis()): Long {
         val c = Calendar.getInstance(FUSO_BRASILIA)
         c.timeInMillis = agoraMillis

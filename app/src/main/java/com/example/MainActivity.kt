@@ -21,35 +21,77 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.auth.AuthRepository
 import com.example.model.AppNavTab
 import com.example.ui.components.AppTopBar
 import com.example.ui.components.BottomNavBar
+import com.example.ui.components.ContaCard
+import com.example.ui.screens.AuthScreen
+import com.example.ui.screens.EditorDeTreinoScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LiveWorkoutExecutionScreen
+import com.example.ui.screens.MeusTreinosScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.WorkoutsScreen
 import com.example.ui.theme.AquaBackground
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.AquagendaViewModel
+import com.example.viewmodel.ContaUiState
+import com.example.viewmodel.ContaViewModel
+import com.example.viewmodel.MeusTreinosViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Antes de qualquer chamada ao Supabase: é daqui que sai o token do usuário.
+        AuthRepository.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                AquagendaApp()
+                AquagendaRaiz()
             }
         }
     }
 }
 
+/** Sem sessão, só a tela de login/cadastro. */
+@Composable
+fun AquagendaRaiz(
+    conta: ContaViewModel = viewModel()
+) {
+    val estadoConta by conta.ui.collectAsStateWithLifecycle()
+
+    if (estadoConta.sessao == null) {
+        AuthScreen(
+            estado = estadoConta,
+            onEntrar = conta::entrar,
+            onCadastrar = conta::cadastrar,
+            onLimparMensagens = conta::limparMensagens
+        )
+    } else {
+        AquagendaApp(conta = conta, estadoConta = estadoConta)
+    }
+}
+
 @Composable
 fun AquagendaApp(
-    viewModel: AquagendaViewModel = viewModel()
+    conta: ContaViewModel,
+    estadoConta: ContaUiState,
+    viewModel: AquagendaViewModel = viewModel(),
+    meusTreinos: MeusTreinosViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val meus by meusTreinos.ui.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(estadoConta.sessao?.userId) {
+        meusTreinos.definirUsuario(estadoConta.sessao?.userId)
+    }
+
+    // O nível do perfil vira o nível da sugestão do dia.
+    LaunchedEffect(estadoConta.perfil?.nivel) {
+        estadoConta.perfil?.nivel?.let { viewModel.selectLevel(it) }
+    }
 
     // Show user notification snackbar when needed
     LaunchedEffect(uiState.userNotification) {
@@ -59,6 +101,15 @@ fun AquagendaApp(
         }
     }
 
+    LaunchedEffect(meus.mensagem) {
+        meus.mensagem?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            meusTreinos.mensagemMostrada()
+        }
+    }
+
+    val editor = meus.editor
+
     if (uiState.liveWorkout.isOpen) {
         // Full screen Live Workout Execution Mode
         LiveWorkoutExecutionScreen(
@@ -67,6 +118,13 @@ fun AquagendaApp(
             onCloseClick = { viewModel.closeLiveWorkout() },
             onTogglePauseClick = { viewModel.togglePauseTimer() },
             onNextSetClick = { viewModel.advanceToNextSet() }
+        )
+    } else if (editor != null) {
+        EditorDeTreinoScreen(
+            editor = editor,
+            onAlterar = meusTreinos::alterarDigitado,
+            onSalvar = meusTreinos::salvar,
+            onCancelar = meusTreinos::fecharEditor
         )
     } else {
         // Main App Layout with TopBar, Content and BottomNav
@@ -123,13 +181,35 @@ fun AquagendaApp(
                         AppNavTab.WORKOUTS -> {
                             WorkoutsScreen(
                                 workout = uiState.currentWorkout,
-                                onStartWorkoutClick = { viewModel.startLiveWorkout() }
+                                onStartWorkoutClick = { viewModel.startLiveWorkout() },
+                                onSaveToMyWorkouts = { meusTreinos.salvarSugestao(uiState.currentWorkout) }
+                            )
+                        }
+
+                        AppNavTab.MY_WORKOUTS -> {
+                            MeusTreinosScreen(
+                                estado = meus,
+                                onNovo = { meusTreinos.novo(uiState.selectedEpochDay, uiState.selectedLevel) },
+                                onEditar = meusTreinos::editar,
+                                onUsar = viewModel::usarTreino,
+                                onExcluir = meusTreinos::pedirExclusao,
+                                onConfirmarExclusao = meusTreinos::confirmarExclusao,
+                                onCancelarExclusao = meusTreinos::cancelarExclusao,
+                                onTentarDeNovo = meusTreinos::carregar
                             )
                         }
 
                         AppNavTab.PROFILE -> {
                             ProfileScreen(
-                                onDownloadWorkoutClick = { viewModel.downloadWorkout() }
+                                onDownloadWorkoutClick = { viewModel.downloadWorkout() },
+                                cabecalho = {
+                                    ContaCard(
+                                        estado = estadoConta,
+                                        onSalvar = conta::salvarPerfil,
+                                        onSair = conta::sair,
+                                        onExcluirConta = conta::excluirConta
+                                    )
+                                }
                             )
                         }
                     }
@@ -138,4 +218,3 @@ fun AquagendaApp(
         }
     }
 }
-

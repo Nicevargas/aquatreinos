@@ -57,6 +57,33 @@ data class WorkoutSetDto(
     @Json(name = "distanceMeters") val distanceMeters: Int? = null
 )
 
+/**
+ * Corpo de INSERT/PATCH em public.workouts: só colunas da tabela. O WorkoutDto
+ * de leitura traz campos da sugestão (is_suggestion, ciclo_dia...) que o
+ * PostgREST recusaria. id e user_id vêm do banco (gen_random_uuid, auth.uid()).
+ */
+@JsonClass(generateAdapter = true)
+data class WorkoutWriteDto(
+    @Json(name = "title") val title: String,
+    @Json(name = "subtitle") val subtitle: String?,
+    @Json(name = "tag") val tag: String,
+    @Json(name = "workout_date") val workoutDate: String,
+    @Json(name = "total_distance_meters") val totalDistanceMeters: Int,
+    @Json(name = "estimated_minutes") val estimatedMinutes: Int,
+    @Json(name = "calories") val calories: Int,
+    @Json(name = "level") val level: String,
+    @Json(name = "phases") val phases: List<WorkoutPhaseDto>
+)
+
+/** Corpo do upsert do próprio perfil. O e-mail o banco copia da conta. */
+@JsonClass(generateAdapter = true)
+data class ProfileWriteDto(
+    @Json(name = "id") val id: String,
+    @Json(name = "full_name") val fullName: String?,
+    @Json(name = "preferred_pool_meters") val preferredPoolMeters: Int,
+    @Json(name = "training_level") val trainingLevel: String
+)
+
 @JsonClass(generateAdapter = true)
 data class TreinosSugeridosParams(
     @Json(name = "p_data") val data: String,

@@ -75,6 +75,7 @@ data class Workout(
 enum class AppNavTab(val title: String) {
     HOME("Home"),
     WORKOUTS("Treinos"),
+    MY_WORKOUTS("Meus treinos"),
     PROFILE("Perfil")
 }
 

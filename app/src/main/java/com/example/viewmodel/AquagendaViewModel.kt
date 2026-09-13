@@ -180,6 +180,14 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    /** Um treino de "Meus treinos" passa a ser o treino da tela inicial. */
+    fun usarTreino(workout: Workout) {
+        remoteWorkoutJob?.cancel()
+        _uiState.update { state ->
+            state.comTreino(workout).copy(selectedLevel = workout.level, selectedTab = AppNavTab.HOME)
+        }
+    }
+
     fun selectTab(tab: AppNavTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }

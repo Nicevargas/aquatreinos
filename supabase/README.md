@@ -24,6 +24,18 @@ A migração inicial deixava a chave pública do app (anon) criar, alterar e sob
 
 Treinos públicos passam a ser mantidos só pelo SQL Editor. O app não é afetado, porque só lê essa tabela. A migração se confere no fim: se a chave pública ainda conseguir escrever, ela desfaz tudo.
 
+## Contas: login obrigatório
+
+O app só abre depois do login ou cadastro (Supabase Auth). `supabase/migrations/20260913000003_contas_do_app.sql` prepara o banco:
+
+- **Perfil no cadastro:** o gatilho `handle_new_user` grava o nome e o nível (`INICIANTE` / `INTERMEDIARIO` / `AVANCADO`) enviados pelo app. O e-mail do perfil é sempre o da conta.
+- **Cada um só com o que é seu:** `profiles`, `swim_set_records` e `swimmer_stats` passam a ter RLS só do dono. Antes, os e-mails de todos os perfis eram públicos e a chave do app gravava séries sem dono.
+- **Excluir a conta:** a função `excluir_minha_conta()` apaga a conta de quem está logado. Perfil, treinos, séries e estatísticas saem junto.
+
+A migração se confere no fim: se a chave pública ainda conseguir ler perfis ou gravar séries, ela desfaz tudo.
+
+Se a confirmação de e-mail estiver ligada em *Authentication → Providers → Email*, o cadastro pelo app avisa para confirmar o e-mail antes de entrar.
+
 ## Treinos sugeridos (carrossel → banco → app)
 
 A fonte é o `treinos.json` do repositório [natacao-treinos](https://github.com/Nicevargas/natacao-treinos), o mesmo arquivo que gera o carrossel do Instagram.

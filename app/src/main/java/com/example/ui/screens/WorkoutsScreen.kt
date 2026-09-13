@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Pool
@@ -29,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,7 +73,8 @@ import com.example.ui.theme.AquaYellowText
 fun WorkoutsScreen(
     workout: Workout,
     onStartWorkoutClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSaveToMyWorkouts: (() -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
 
@@ -338,6 +341,27 @@ fun WorkoutsScreen(
             }
 
             Spacer(modifier = Modifier.height(26.dp))
+
+            if (onSaveToMyWorkouts != null && workout.isSuggestion) {
+                OutlinedButton(
+                    onClick = onSaveToMyWorkouts,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("salvar_nos_meus_treinos"),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.BookmarkBorder,
+                        contentDescription = null,
+                        tint = AquaPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Salvar nos meus treinos", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AquaPrimary)
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Primary CTA: Iniciar Treino
             Button(

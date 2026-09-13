@@ -69,7 +69,8 @@ import com.example.ui.theme.AquaYellowBg
 @Composable
 fun ProfileScreen(
     onDownloadWorkoutClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    cabecalho: @Composable () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -80,6 +81,11 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Minha conta (perfil, sair, excluir)
+        cabecalho()
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Progress Circular Chart Card
         Surface(
