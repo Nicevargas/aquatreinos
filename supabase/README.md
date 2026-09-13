@@ -61,8 +61,29 @@ Os modelos de `supabase/templates/` estão aplicados em *Authentication → Emai
 | Change email address | `trocar_email.html` |
 | Reset password | `redefinir_senha.html` |
 | Reauthentication | `reautenticacao.html` |
+| Password changed (Security) | `aviso_senha_alterada.html` |
+| Email address changed (Security) | `aviso_email_alterado.html` |
+| Phone number changed (Security) | `aviso_telefone_alterado.html` |
+| Sign-in method linked (Security) | `aviso_login_vinculado.html` |
+| Sign-in method removed (Security) | `aviso_login_removido.html` |
+| MFA method added (Security) | `aviso_verificacao_adicionada.html` |
+| MFA method removed (Security) | `aviso_verificacao_removida.html` |
+
+Os avisos de segurança vêm desligados ("Enable notification"). Traduzir não liga nenhum deles. **Pendente:** as traduções dos 7 avisos de segurança (`aviso_*.html`) estão prontas aqui, mas ainda não foram coladas no painel.
 
 Ao mudar um arquivo, cole de novo no painel, sem o comentário do topo.
+
+## Concluir treino e publicar nas redes
+
+A execução ao vivo percorre o treino escolhido, seja a sugestão do dia ou um de Meus treinos. Cada toque em "Repetição feita" conta uma repetição da série ("8x75m" = 8 toques de 75m). A tela fica ligada durante o treino, e o tempo usa um relógio que não atrasa nem pula.
+
+Ao concluir, a pessoa dá as notas de **Intensidade** e **Complexidade** de 0 a 10, que o carrossel pede na legenda, e o treino é gravado em `treinos_realizados` (`supabase/migrations/20260913000004_treinos_realizados.sql`):
+
+- **RLS só do dono:** cada um vê, registra e apaga só os próprios. Não há UPDATE: o registro é o que aconteceu.
+- **Gatilho:** soma metros, tempo e quantidade em `swimmer_stats`, e desconta se o registro for apagado. Também marca `workouts.is_completed` quando o treino feito é um de Meus treinos da própria pessoa.
+- **Travas:** metros e séries feitos não passam dos planejados, notas vão de 0 a 10, e a observação tem até 500 letras.
+
+Depois de salvar, o app gera uma **imagem do treino** em formato de feed (4:5) ou de stories (9:16) e abre o menu de compartilhar do Android. A legenda, com as hashtags do carrossel, vai junto e também é copiada para a área de transferência, porque o Instagram ignora o texto que vem com a imagem. Não há publicação automática: postar pela API do Instagram exigiria aprovação da Meta para cada pessoa.
 
 ## Treinos sugeridos (carrossel → banco → app)
 

@@ -73,6 +73,14 @@ interface SupabaseApi {
         @Body vazio: Map<String, String> = emptyMap()
     ): Response<ResponseBody>
 
+    // ---- Treinos realizados ("Concluir treino") ----
+
+    @POST("rest/v1/treinos_realizados")
+    @Headers("Prefer: return=representation")
+    suspend fun registrarTreino(
+        @Body registro: com.example.data.execucao.TreinoRealizadoDto
+    ): Response<List<com.example.data.execucao.TreinoRealizadoDto>>
+
     // ---- Séries cronometradas ----
 
     @GET("rest/v1/swim_set_records")

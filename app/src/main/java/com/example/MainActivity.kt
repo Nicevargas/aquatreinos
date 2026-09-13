@@ -29,7 +29,10 @@ import com.example.ui.components.ContaCard
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.EditorDeTreinoScreen
 import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.LiveWorkoutExecutionScreen
+import androidx.compose.ui.platform.LocalContext
+import com.example.ui.compartilhar.compartilharTreino
+import com.example.ui.screens.ExecucaoDeTreinoScreen
+import com.example.viewmodel.ExecucaoViewModel
 import com.example.ui.screens.MeusTreinosScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.RecuperarSenhaScreen
@@ -91,10 +94,13 @@ fun AquagendaApp(
     conta: ContaViewModel,
     estadoConta: ContaUiState,
     viewModel: AquagendaViewModel = viewModel(),
-    meusTreinos: MeusTreinosViewModel = viewModel()
+    meusTreinos: MeusTreinosViewModel = viewModel(),
+    execucao: ExecucaoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val meus by meusTreinos.ui.collectAsStateWithLifecycle()
+    val estadoExecucao by execucao.ui.collectAsStateWithLifecycle()
+    val contexto = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(estadoConta.sessao?.userId) {
@@ -123,14 +129,24 @@ fun AquagendaApp(
 
     val editor = meus.editor
 
-    if (uiState.liveWorkout.isOpen) {
-        // Full screen Live Workout Execution Mode
-        LiveWorkoutExecutionScreen(
-            workout = uiState.currentWorkout,
-            liveState = uiState.liveWorkout,
-            onCloseClick = { viewModel.closeLiveWorkout() },
-            onTogglePauseClick = { viewModel.togglePauseTimer() },
-            onNextSetClick = { viewModel.advanceToNextSet() }
+    if (estadoExecucao.ativo) {
+        // Execução ao vivo do treino escolhido -> concluir -> publicar
+        ExecucaoDeTreinoScreen(
+            estado = estadoExecucao,
+            onAlternarPausa = execucao::alternarPausa,
+            onAvancar = execucao::avancar,
+            onVoltar = execucao::voltar,
+            onConcluir = execucao::irParaResumo,
+            onSairSemSalvar = execucao::encerrar,
+            onVoltarAoTreino = execucao::voltarAoTreino,
+            onIntensidade = execucao::definirIntensidade,
+            onComplexidade = execucao::definirComplexidade,
+            onObservacao = execucao::definirObservacao,
+            onSalvar = { execucao.salvar() },
+            onCompartilhar = { formato ->
+                estadoExecucao.resumo?.let { compartilharTreino(contexto, it, formato) }
+            },
+            onFechar = execucao::encerrar
         )
     } else if (editor != null) {
         EditorDeTreinoScreen(
@@ -180,7 +196,7 @@ fun AquagendaApp(
                                 stopwatchState = uiState.stopwatch,
                                 onDayClick = { viewModel.selectDay(it) },
                                 onLevelChange = { viewModel.selectLevel(it) },
-                                onStartWorkoutClick = { viewModel.startLiveWorkout() },
+                                onStartWorkoutClick = { execucao.iniciar(uiState.currentWorkout) },
                                 onViewWorkoutDetails = { viewModel.selectTab(AppNavTab.WORKOUTS) },
                                 onToggleStopwatch = { viewModel.toggleStopwatch() },
                                 onLapStopwatch = { viewModel.recordSetLap() },
@@ -194,7 +210,7 @@ fun AquagendaApp(
                         AppNavTab.WORKOUTS -> {
                             WorkoutsScreen(
                                 workout = uiState.currentWorkout,
-                                onStartWorkoutClick = { viewModel.startLiveWorkout() },
+                                onStartWorkoutClick = { execucao.iniciar(uiState.currentWorkout) },
                                 onSaveToMyWorkouts = { meusTreinos.salvarSugestao(uiState.currentWorkout) }
                             )
                         }

@@ -1,6 +1,7 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.WorkoutRepository
@@ -25,24 +26,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-data class LiveWorkoutUiState(
-    val isOpen: Boolean = false,
-    val isTimerRunning: Boolean = false,
-    val elapsedSeconds: Long = 2535L, // 00:42:15 initial time matching mockup
-    val currentSetNumber: Int = 3,
-    val totalSetsInPhase: Int = 5,
-    val completedMeters: Int = 1200,
-    val totalMeters: Int = 2500,
-    val isFinished: Boolean = false
-)
-
 data class AquagendaUiState(
     val selectedTab: AppNavTab = AppNavTab.HOME,
     val selectedLevel: TrainingLevel = TrainingLevel.INTERMEDIARIO,
     val selectedEpochDay: Long = DataCivil.hoje(),
     val calendarDays: List<CalendarDay> = WorkoutRepository.semanaDoCalendario(DataCivil.hoje()),
     val currentWorkout: Workout = WorkoutRepository.getWorkoutForLevel(TrainingLevel.INTERMEDIARIO),
-    val liveWorkout: LiveWorkoutUiState = LiveWorkoutUiState(),
     val stopwatch: SwimSetStopwatchState = SwimSetStopwatchState(),
     val userNotification: String? = null,
     val supabaseStatus: SupabaseStatus = SupabaseRepository.getInitialStatus(),
@@ -87,21 +76,7 @@ private fun AquagendaUiState.comTreino(workout: Workout): AquagendaUiState {
             targetIntervalSeconds = ((nado + descanso + 4) / 5) * 5
         )
     }
-    return copy(
-        currentWorkout = workout,
-        liveWorkout = if (liveWorkout.isOpen) {
-            liveWorkout
-        } else {
-            liveWorkout.copy(
-                elapsedSeconds = 0L,
-                currentSetNumber = 1,
-                completedMeters = 0,
-                totalMeters = workout.totalDistanceMeters,
-                isFinished = false
-            )
-        },
-        stopwatch = cronometro
-    )
+    return copy(currentWorkout = workout, stopwatch = cronometro)
 }
 
 class AquagendaViewModel(application: Application) : AndroidViewModel(application) {
@@ -116,13 +91,15 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     )
     val uiState: StateFlow<AquagendaUiState> = _uiState.asStateFlow()
 
-    private var timerJob: Job? = null
     private var remoteWorkoutJob: Job? = null
 
-    // Real-time Swim Set Stopwatch on Main Screen
+    // Cronômetro de série da tela inicial. Relógio monotônico: não pula quando o
+    // celular acerta a hora.
     private var stopwatchJob: Job? = null
     private var stopwatchStartTimestamp: Long = 0L
     private var stopwatchBaseAccumulatedMillis: Long = 48500L
+
+    private fun agora(): Long = SystemClock.elapsedRealtime()
 
     init {
         checkSupabaseConnection()
@@ -212,103 +189,12 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
         loadSuggestedWorkout()
     }
 
-    fun startLiveWorkout() {
-        _uiState.update { state ->
-            state.copy(
-                liveWorkout = state.liveWorkout.copy(
-                    isOpen = true,
-                    isTimerRunning = true
-                )
-            )
-        }
-        startTimer()
-    }
-
-    fun closeLiveWorkout() {
-        pauseTimer()
-        _uiState.update { state ->
-            state.copy(
-                liveWorkout = state.liveWorkout.copy(isOpen = false)
-            )
-        }
-    }
-
-    fun togglePauseTimer() {
-        val currentlyRunning = _uiState.value.liveWorkout.isTimerRunning
-        if (currentlyRunning) {
-            pauseTimer()
-            _uiState.update { state ->
-                state.copy(
-                    liveWorkout = state.liveWorkout.copy(isTimerRunning = false)
-                )
-            }
-        } else {
-            _uiState.update { state ->
-                state.copy(
-                    liveWorkout = state.liveWorkout.copy(isTimerRunning = true)
-                )
-            }
-            startTimer()
-        }
-    }
-
-    fun advanceToNextSet() {
-        _uiState.update { state ->
-            val lw = state.liveWorkout
-            if (lw.currentSetNumber < lw.totalSetsInPhase) {
-                val nextSet = lw.currentSetNumber + 1
-                val addedMeters = 100
-                val newCompletedMeters = (lw.completedMeters + addedMeters).coerceAtMost(lw.totalMeters)
-                state.copy(
-                    liveWorkout = lw.copy(
-                        currentSetNumber = nextSet,
-                        completedMeters = newCompletedMeters
-                    )
-                )
-            } else {
-                // Completed main set
-                state.copy(
-                    liveWorkout = lw.copy(
-                        completedMeters = lw.totalMeters,
-                        isFinished = true
-                    ),
-                    userNotification = "Parabéns! Todas as séries da fase principal foram concluídas!"
-                )
-            }
-        }
-    }
-
     fun downloadWorkout() {
         _uiState.update { it.copy(userNotification = "Treino sincronizado e salvo no dispositivo com sucesso!") }
     }
 
     fun dismissNotification() {
         _uiState.update { it.copy(userNotification = null) }
-    }
-
-    private fun startTimer() {
-        timerJob?.cancel()
-        timerJob = viewModelScope.launch {
-            while (true) {
-                delay(1000L)
-                _uiState.update { state ->
-                    if (state.liveWorkout.isTimerRunning) {
-                        state.copy(
-                            liveWorkout = state.liveWorkout.copy(
-                                elapsedSeconds = state.liveWorkout.elapsedSeconds + 1
-                            )
-                        )
-                    } else {
-                        state
-                    }
-                }
-            }
-        }
-    }
-
-    private fun pauseTimer() {
-        timerJob?.cancel()
-        timerJob = null
     }
 
     // --- Swimming Set Real-time Stopwatch Methods ---
@@ -323,15 +209,14 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun startStopwatch() {
-        stopwatchStartTimestamp = System.currentTimeMillis()
+        stopwatchStartTimestamp = agora()
         stopwatchBaseAccumulatedMillis = _uiState.value.stopwatch.elapsedMillis
         _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
         stopwatchJob?.cancel()
         stopwatchJob = viewModelScope.launch {
             while (true) {
                 delay(50L) // 20 updates per second for smooth real-time deciseconds
-                val now = System.currentTimeMillis()
-                val currentElapsed = stopwatchBaseAccumulatedMillis + (now - stopwatchStartTimestamp)
+                val currentElapsed = stopwatchBaseAccumulatedMillis + (agora() - stopwatchStartTimestamp)
                 _uiState.update { state ->
                     if (state.stopwatch.isRunning) {
                         state.copy(
@@ -348,8 +233,7 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     private fun pauseStopwatch() {
         stopwatchJob?.cancel()
         stopwatchJob = null
-        val now = System.currentTimeMillis()
-        val currentElapsed = stopwatchBaseAccumulatedMillis + (now - stopwatchStartTimestamp)
+        val currentElapsed = stopwatchBaseAccumulatedMillis + (agora() - stopwatchStartTimestamp)
         stopwatchBaseAccumulatedMillis = currentElapsed
         _uiState.update {
             it.copy(
@@ -379,7 +263,7 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     fun recordSetLap() {
         val current = _uiState.value.stopwatch
         val currentMillis = if (current.isRunning) {
-            stopwatchBaseAccumulatedMillis + (System.currentTimeMillis() - stopwatchStartTimestamp)
+            stopwatchBaseAccumulatedMillis + (agora() - stopwatchStartTimestamp)
         } else {
             current.elapsedMillis
         }
@@ -408,7 +292,7 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
         val nextSet = if (!isLastSet) current.currentSetNumber + 1 else current.totalSets
 
         // Reset timer base for next set
-        stopwatchStartTimestamp = System.currentTimeMillis()
+        stopwatchStartTimestamp = agora()
         stopwatchBaseAccumulatedMillis = 0L
 
         // Asynchronously persist to Supabase if configured
@@ -478,7 +362,6 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
 
     override fun onCleared() {
         super.onCleared()
-        timerJob?.cancel()
         remoteWorkoutJob?.cancel()
         stopwatchJob?.cancel()
     }
