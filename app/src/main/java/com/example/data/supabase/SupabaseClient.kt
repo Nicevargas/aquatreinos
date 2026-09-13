@@ -96,9 +96,11 @@ object SupabaseClient {
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            // Cadastro e "esqueci minha senha" só respondem depois que o Supabase
+            // manda o e-mail pelo SMTP, e isso pode levar vários segundos.
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build()
     }
 

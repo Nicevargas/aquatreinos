@@ -2,6 +2,7 @@ package com.example.data.auth
 
 import com.example.data.Resultado
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 /**
  * Esqueci minha senha, sem sair do app:
@@ -50,6 +51,8 @@ class RecuperacaoDeSenha(
     private suspend fun <T> protegido(bloco: suspend () -> Resultado<T>): Resultado<T> =
         try {
             bloco()
+        } catch (e: SocketTimeoutException) {
+            Resultado.Falha(MensagensAuth.DEMOROU)
         } catch (e: IOException) {
             Resultado.Falha(MensagensAuth.SEM_REDE)
         } catch (e: Exception) {

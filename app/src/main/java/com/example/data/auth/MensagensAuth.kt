@@ -8,6 +8,8 @@ object MensagensAuth {
 
     const val SEM_CONFIGURACAO = "O app não está conectado ao Supabase (SUPABASE_URL e SUPABASE_ANON_KEY)."
     const val SEM_REDE = "Sem conexão com a internet. Tente de novo."
+    const val DEMOROU = "O servidor demorou demais para responder. Tente de novo em instantes."
+    const val CADASTRO_DEMOROU = "O servidor demorou para responder. Sua conta pode ter sido criada: confira seu e-mail (e o spam) antes de tentar de novo."
 
     private val moshi by lazy { Moshi.Builder().add(KotlinJsonAdapterFactory()).build() }
     private val adapterAuth by lazy { moshi.adapter(AuthErrorDto::class.java) }

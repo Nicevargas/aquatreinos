@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Response
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 /** Faz a chamada no Supabase e traduz falha de rede, HTTP e RLS em mensagem para a tela. */
 internal suspend fun <T, R> chamarApi(
@@ -21,6 +22,8 @@ internal suspend fun <T, R> chamarApi(
         } else {
             Resultado.Falha(MensagensAuth.deErroDaApi(resposta.code(), resposta.errorBody()?.string()))
         }
+    } catch (e: SocketTimeoutException) {
+        Resultado.Falha(MensagensAuth.DEMOROU)
     } catch (e: IOException) {
         Resultado.Falha(MensagensAuth.SEM_REDE)
     } catch (e: Exception) {

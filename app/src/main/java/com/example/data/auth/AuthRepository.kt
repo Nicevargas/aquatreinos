@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 object AuthRepository {
     private const val TAG = "AuthRepository"
@@ -43,6 +44,8 @@ object AuthRepository {
             } else {
                 ResultadoAuth.Erro(MensagensAuth.deErroDeAuth(r.code(), r.errorBody()?.string()))
             }
+        } catch (e: SocketTimeoutException) {
+            ResultadoAuth.Erro(MensagensAuth.DEMOROU)
         } catch (e: IOException) {
             ResultadoAuth.Erro(MensagensAuth.SEM_REDE)
         } catch (e: Exception) {
@@ -82,7 +85,12 @@ object AuthRepository {
                 } else {
                     ResultadoAuth.ConfirmarEmail
                 }
+            } catch (e: SocketTimeoutException) {
+                // O Supabase cria a conta e depois manda o e-mail; a demora costuma ser o envio.
+                Log.w(TAG, "Cadastro sem resposta a tempo", e)
+                ResultadoAuth.Erro(MensagensAuth.CADASTRO_DEMOROU)
             } catch (e: IOException) {
+                Log.w(TAG, "Cadastro sem rede", e)
                 ResultadoAuth.Erro(MensagensAuth.SEM_REDE)
             } catch (e: Exception) {
                 Log.e(TAG, "Falha inesperada no cadastro", e)

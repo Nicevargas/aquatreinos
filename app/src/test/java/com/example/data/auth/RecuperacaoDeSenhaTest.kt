@@ -116,6 +116,21 @@ class RecuperacaoDeSenhaTest {
     }
 
     @Test
+    fun `servidor que nao responde a tempo vira demora, nao falta de internet`() = runTest {
+        servidor.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.NO_RESPONSE))
+        val apiLenta = Retrofit.Builder()
+            .baseUrl(servidor.url("/"))
+            .client(okhttp3.OkHttpClient.Builder().readTimeout(1, java.util.concurrent.TimeUnit.SECONDS).build())
+            .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder().add(KotlinJsonAdapterFactory()).build()))
+            .build()
+            .create(AuthApi::class.java)
+
+        val r = RecuperacaoDeSenha(apiLenta).enviarCodigo("ana@exemplo.com")
+
+        assertEquals(Resultado.Falha(MensagensAuth.DEMOROU), r)
+    }
+
+    @Test
     fun `sem rede vira mensagem e nao estoura`() = runTest {
         servidor.shutdown()
 
