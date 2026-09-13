@@ -60,6 +60,7 @@ import com.example.ui.components.SwimSetStopwatchCard
 import com.example.ui.theme.AquaBlueBg
 import com.example.ui.theme.AquaBorder
 import com.example.ui.theme.AquaCyan
+import com.example.ui.theme.AquaGreen
 import com.example.ui.theme.AquaMagenta
 import com.example.ui.theme.AquaPinkBg
 import com.example.ui.theme.AquaPrimary
@@ -75,7 +76,7 @@ fun HomeScreen(
     selectedLevel: TrainingLevel,
     calendarDays: List<CalendarDay>,
     stopwatchState: SwimSetStopwatchState,
-    onDayClick: (Int) -> Unit,
+    onDayClick: (Long) -> Unit,
     onLevelChange: (TrainingLevel) -> Unit,
     onStartWorkoutClick: () -> Unit,
     onViewWorkoutDetails: () -> Unit,
@@ -139,7 +140,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Level Toggle: Intermediário / Avançado
+        // Level Toggle: os três níveis do carrossel
         TrainingLevelToggle(
             selectedLevel = selectedLevel,
             onLevelChange = onLevelChange
@@ -216,24 +217,22 @@ fun HomeScreen(
 @Composable
 private fun CalendarStrip(
     days: List<CalendarDay>,
-    onDayClick: (Int) -> Unit
+    onDayClick: (Long) -> Unit
 ) {
-    val scrollState = rememberScrollState()
-
+    // Semana inteira (seg a dom) sem rolagem: o domingo não pode ficar escondido
+    // fora da tela quando é o dia selecionado.
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         days.forEach { day ->
             val isSelected = day.isSelected
             Surface(
                 modifier = Modifier
-                    .width(58.dp)
+                    .weight(1f)
                     .height(80.dp)
                     .clip(RoundedCornerShape(18.dp))
-                    .clickable { onDayClick(day.dayNumber) }
+                    .clickable { onDayClick(day.epochDay) }
                     .testTag("calendar_day_${day.dayNumber}"),
                 shape = RoundedCornerShape(18.dp),
                 color = if (isSelected) Color.Transparent else Color.White,
@@ -447,7 +446,7 @@ private fun WorkoutMetricBentoCards(workout: Workout) {
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "HOJE",
+                        text = "DISTÂNCIA",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = AquaTextSecondary,
@@ -559,57 +558,49 @@ private fun TrainingLevelToggle(
         Row(
             modifier = Modifier.padding(4.dp)
         ) {
-            val isIntermediario = selectedLevel == TrainingLevel.INTERMEDIARIO
-
-            // Intermediário Button
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(50.dp))
-                    .then(
-                        if (isIntermediario) {
-                            Modifier
-                                .background(Color.White)
-                                .shadow(2.dp, RoundedCornerShape(50.dp))
-                        } else {
-                            Modifier.clickable { onLevelChange(TrainingLevel.INTERMEDIARIO) }
-                        }
-                    )
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Intermediário",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isIntermediario) AquaPrimary else AquaTextSecondary
-                )
-            }
-
-            // Avançado Button
-            val isAvancado = selectedLevel == TrainingLevel.AVANCADO
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(50.dp))
-                    .then(
-                        if (isAvancado) {
-                            Modifier
-                                .background(Color.White)
-                                .shadow(2.dp, RoundedCornerShape(50.dp))
-                        } else {
-                            Modifier.clickable { onLevelChange(TrainingLevel.AVANCADO) }
-                        }
-                    )
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Avançado",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isAvancado) AquaPrimary else AquaTextSecondary
-                )
+            TrainingLevel.entries.forEach { level ->
+                val isSelected = selectedLevel == level
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(50.dp))
+                        .then(
+                            if (isSelected) {
+                                Modifier
+                                    .background(Color.White)
+                                    .shadow(2.dp, RoundedCornerShape(50.dp))
+                            } else {
+                                Modifier.clickable { onLevelChange(level) }
+                            }
+                        )
+                        .padding(vertical = 10.dp)
+                        .testTag("training_level_${level.name.lowercase()}"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Mesma cor do nível no carrossel: verde, amarelo, vermelho.
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when (level) {
+                                        TrainingLevel.INICIANTE -> AquaGreen
+                                        TrainingLevel.INTERMEDIARIO -> AquaYellow
+                                        TrainingLevel.AVANCADO -> AquaMagenta
+                                    }
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = level.label,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            color = if (isSelected) AquaPrimary else AquaTextSecondary
+                        )
+                    }
+                }
             }
         }
     }

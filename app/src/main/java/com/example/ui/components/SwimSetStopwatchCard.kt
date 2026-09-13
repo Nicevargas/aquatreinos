@@ -371,9 +371,10 @@ fun SwimSetStopwatchCard(
                     ) {
                         Text(
                             text = if (stopwatchState.mode == StopwatchMode.SERIE) {
-                                "${stopwatchState.setRepDescription} • Sair a cada 1'45\""
+                                val alvo = stopwatchState.targetIntervalSeconds
+                                "${stopwatchState.setRepDescription} • Sair a cada ${alvo / 60}'${String.format(Locale.US, "%02d", alvo % 60)}\""
                             } else {
-                                "Intervalo de Descanso • 30 segundos"
+                                "Intervalo de Descanso • ${stopwatchState.restDurationSeconds} segundos"
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,

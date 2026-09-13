@@ -4,10 +4,35 @@ Este diretório contém a estrutura completa de banco de dados, migrações e po
 
 ## Estrutura do Banco de Dados
 
-- **`profiles`**: Perfis dos atletas com preferência de metragem de piscina (25m ou 50m) e nível de treino (`INTERMEDIARIO` / `AVANCADO`).
+- **`profiles`**: Perfis dos atletas com preferência de metragem de piscina (25m ou 50m) e nível de treino (`INICIANTE` / `INTERMEDIARIO` / `AVANCADO`).
 - **`workouts`**: Planilhas e treinos com fases em JSONB (`Aquecimento`, `Preparatória`, `Principal`, `Soltura`), ritmo, séries e distância.
 - **`swim_set_records`**: Registros das séries e voltas calculadas em tempo real pelo cronômetro poolside, incluindo parciais, ritmos por 100m e variações de split.
 - **`swimmer_stats`**: Métricas acumuladas de distância total, tempo de piscina e melhor tempo registrado.
+- **`ciclos_treino`** e **`treinos_ciclo`**: os treinos sugeridos. É o programa do carrossel "Cada Dia 1 Treino" do @natacaocriativa: 28 dias × 3 níveis = 84 treinos. Leitura pública, escrita só pelo SQL Editor.
+- **`treinos_sugeridos(p_data, p_level)`**: função que devolve o treino sugerido de uma data, com a mesma conta do carrossel, `(data - âncora) mod 28`. O treino de hoje no app é sempre o do carrossel publicado hoje, sem nenhum processo diário.
+
+## Treinos sugeridos (carrossel → banco → app)
+
+A fonte é o `treinos.json` do repositório [natacao-treinos](https://github.com/Nicevargas/natacao-treinos), o mesmo arquivo que gera o carrossel do Instagram.
+
+1. Rode no **SQL Editor**, uma vez, `supabase/migrations/20260913000001_treinos_sugeridos_do_carrossel.sql`. Ela cria as tabelas e a função e acrescenta o nível `INICIANTE`.
+2. Rode `supabase/seed/treinos_ciclo.sql`. Ele grava os 84 treinos. Pode rodar de novo quando quiser: é upsert, e se o ciclo ficar incompleto a transação é desfeita.
+3. Quando o programa do carrossel mudar, gere o seed de novo e repita o passo 2:
+
+```bash
+python scripts/carrossel_para_supabase.py
+```
+
+O script baixa o `treinos.json` do GitHub e regrava **as duas cópias**: o seed SQL e `app/src/main/assets/treinos_ciclo.json`, que o app usa quando está offline. Recompile o app para atualizar a cópia embarcada.
+
+Teste rápido no SQL Editor:
+
+```sql
+SELECT ciclo_dia, foco, level, total_distance_meters
+FROM treinos_sugeridos(CURRENT_DATE);
+```
+
+Tempo estimado e calorias **não vêm do carrossel**. São estimativas do script: ritmo médio por nível mais os intervalos, e ~8 kcal/min.
 
 ## Como Executar as Migrações no Supabase
 

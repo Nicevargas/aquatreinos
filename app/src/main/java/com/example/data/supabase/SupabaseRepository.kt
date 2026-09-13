@@ -1,7 +1,7 @@
 package com.example.data.supabase
 
 import android.util.Log
-import com.example.data.WorkoutRepository
+import com.example.data.ciclo.DataCivil
 import com.example.model.CompletedSetRecord
 import com.example.model.TrainingLevel
 import com.example.model.Workout
@@ -39,28 +39,24 @@ object SupabaseRepository {
         }
     }
 
-    suspend fun getWorkouts(level: TrainingLevel): List<Workout> = withContext(Dispatchers.IO) {
-        val api = SupabaseClient.api
-        if (api == null) {
-            return@withContext listOf(WorkoutRepository.getWorkoutForLevel(level))
-        }
-
+    /**
+     * Treino sugerido para a data e o nível, vindo de public.treinos_sugeridos.
+     * Null sem Supabase ou em falha: quem chama fica com a cópia embarcada.
+     */
+    suspend fun getTreinoSugerido(epochDay: Long, level: TrainingLevel): Workout? = withContext(Dispatchers.IO) {
+        val api = SupabaseClient.api ?: return@withContext null
         try {
-            val levelFilter = if (level == TrainingLevel.AVANCADO) "eq.AVANCADO" else "eq.INTERMEDIARIO"
-            var response = api.getWorkoutsByLevel(levelFilter = levelFilter)
-            if (!response.isSuccessful || response.body().isNullOrEmpty()) {
-                response = api.getWorkouts()
-            }
-            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                val workouts = response.body()!!.map { it.toDomain() }
-                Log.i(TAG, "Loaded ${workouts.size} workouts from Supabase")
-                workouts
+            val params = TreinosSugeridosParams(data = DataCivil.paraIso(epochDay), level = level.name)
+            val response = api.getTreinosSugeridos(params)
+            if (response.isSuccessful) {
+                response.body()?.firstOrNull()?.toDomain()
             } else {
-                listOf(WorkoutRepository.getWorkoutForLevel(level))
+                Log.w(TAG, "treinos_sugeridos returned HTTP ${response.code()}")
+                null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error querying Supabase workouts, using local repository", e)
-            listOf(WorkoutRepository.getWorkoutForLevel(level))
+            Log.e(TAG, "Error querying treinos_sugeridos, keeping bundled cycle", e)
+            null
         }
     }
 
@@ -81,10 +77,15 @@ object SupabaseRepository {
         }
     }
 
-    suspend fun recordSwimSet(record: CompletedSetRecord, workoutId: String?): Boolean = withContext(Dispatchers.IO) {
+    suspend fun recordSwimSet(
+        record: CompletedSetRecord,
+        workoutId: String?,
+        repDescription: String,
+        distanceMeters: Int
+    ): Boolean = withContext(Dispatchers.IO) {
         val api = SupabaseClient.api ?: return@withContext false
         try {
-            val dto = record.toDto(workoutId = workoutId)
+            val dto = record.toDto(workoutId = workoutId, repDescription = repDescription, distanceMeters = distanceMeters)
             val response = api.insertSwimSetRecord(dto)
             if (response.isSuccessful) {
                 Log.i(TAG, "Swim set S${record.setNumber} successfully stored in Supabase!")

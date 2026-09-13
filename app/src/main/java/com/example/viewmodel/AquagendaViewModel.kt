@@ -1,19 +1,21 @@
 package com.example.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.WorkoutRepository
+import com.example.data.ciclo.DataCivil
+import com.example.data.ciclo.TreinosSugeridosRepository
 import com.example.data.supabase.SupabaseRepository
 import com.example.data.supabase.SupabaseStatus
 import com.example.model.AppNavTab
 import com.example.model.CalendarDay
 import com.example.model.CompletedSetRecord
-import com.example.model.PhaseStatus
 import com.example.model.StopwatchMode
 import com.example.model.SwimSetStopwatchState
 import com.example.model.TrainingLevel
 import com.example.model.Workout
-import com.example.model.WorkoutPhase
+import com.example.model.WorkoutSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +39,8 @@ data class LiveWorkoutUiState(
 data class AquagendaUiState(
     val selectedTab: AppNavTab = AppNavTab.HOME,
     val selectedLevel: TrainingLevel = TrainingLevel.INTERMEDIARIO,
-    val calendarDays: List<CalendarDay> = WorkoutRepository.getInitialCalendarDays(),
+    val selectedEpochDay: Long = DataCivil.hoje(),
+    val calendarDays: List<CalendarDay> = WorkoutRepository.semanaDoCalendario(DataCivil.hoje()),
     val currentWorkout: Workout = WorkoutRepository.getWorkoutForLevel(TrainingLevel.INTERMEDIARIO),
     val liveWorkout: LiveWorkoutUiState = LiveWorkoutUiState(),
     val stopwatch: SwimSetStopwatchState = SwimSetStopwatchState(),
@@ -46,12 +49,75 @@ data class AquagendaUiState(
     val isSyncingWithSupabase: Boolean = false
 )
 
-class AquagendaViewModel : ViewModel() {
+// Mesmos ritmos médios que scripts/carrossel_para_supabase.py usa para estimar o tempo.
+private val RITMO_S_POR_100M = mapOf(
+    TrainingLevel.INICIANTE to 150,
+    TrainingLevel.INTERMEDIARIO to 130,
+    TrainingLevel.AVANCADO to 115
+)
 
-    private val _uiState = MutableStateFlow(AquagendaUiState())
+private fun repeticoes(set: WorkoutSet): Int =
+    set.repsDistance.lowercase().substringBefore("x", "1").trim().toIntOrNull() ?: 1
+
+/** A série que o cronômetro acompanha: a primeira série repetida da parte principal. */
+private fun serieDoCronometro(workout: Workout): WorkoutSet? {
+    val principal = workout.phases.firstOrNull { it.title.equals("Principal", ignoreCase = true) }?.sets.orEmpty()
+    val todas = workout.phases.flatMap { it.sets }
+    return principal.firstOrNull { repeticoes(it) > 1 && it.restSeconds > 0 }
+        ?: principal.firstOrNull { repeticoes(it) > 1 }
+        ?: todas.firstOrNull { repeticoes(it) > 1 }
+        ?: principal.firstOrNull()
+}
+
+private fun AquagendaUiState.comTreino(workout: Workout): AquagendaUiState {
+    val serie = serieDoCronometro(workout)
+    val cronometro = if (serie == null || stopwatch.isRunning) {
+        stopwatch
+    } else {
+        val reps = repeticoes(serie)
+        val metros = if (serie.distanceMeters > 0) serie.distanceMeters / reps else 100
+        val descanso = serie.restSeconds.takeIf { it > 0 } ?: stopwatch.restDurationSeconds
+        val nado = metros * (RITMO_S_POR_100M[workout.level] ?: 130) / 100
+        stopwatch.copy(
+            currentSetNumber = 1,
+            totalSets = reps,
+            setRepDescription = serie.header.ifBlank { "${serie.repsDistance}m ${serie.description}" },
+            setDistanceMeters = metros,
+            restDurationSeconds = descanso,
+            targetIntervalSeconds = ((nado + descanso + 4) / 5) * 5
+        )
+    }
+    return copy(
+        currentWorkout = workout,
+        liveWorkout = if (liveWorkout.isOpen) {
+            liveWorkout
+        } else {
+            liveWorkout.copy(
+                elapsedSeconds = 0L,
+                currentSetNumber = 1,
+                completedMeters = 0,
+                totalMeters = workout.totalDistanceMeters,
+                isFinished = false
+            )
+        },
+        stopwatch = cronometro
+    )
+}
+
+class AquagendaViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val treinos = TreinosSugeridosRepository {
+        application.assets.open("treinos_ciclo.json").bufferedReader().use { it.readText() }
+    }
+
+    // O treino de hoje já sai da cópia embarcada no primeiro quadro, sem esperar rede.
+    private val _uiState = MutableStateFlow(
+        AquagendaUiState().let { it.comTreino(treinos.embarcado(it.selectedEpochDay, it.selectedLevel)) }
+    )
     val uiState: StateFlow<AquagendaUiState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
+    private var remoteWorkoutJob: Job? = null
 
     // Real-time Swim Set Stopwatch on Main Screen
     private var stopwatchJob: Job? = null
@@ -76,15 +142,17 @@ class AquagendaViewModel : ViewModel() {
     fun syncDataFromSupabase() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSyncingWithSupabase = true) }
+            val dia = _uiState.value.selectedEpochDay
+            val level = _uiState.value.selectedLevel
             try {
-                val remoteWorkouts = SupabaseRepository.getWorkouts(_uiState.value.selectedLevel)
+                val remoteWorkout = treinos.remoto(dia, level)
                 val remoteLaps = SupabaseRepository.getSwimSetRecords()
                 _uiState.update { state ->
-                    val workoutToUse = remoteWorkouts.firstOrNull() ?: state.currentWorkout
-                    val lapsToUse = if (remoteLaps.isNotEmpty()) remoteLaps.sortedByDescending { it.setNumber } else state.stopwatch.completedLaps
-                    state.copy(
-                        currentWorkout = workoutToUse,
-                        stopwatch = state.stopwatch.copy(completedLaps = lapsToUse),
+                    val mesmaEscolha = state.selectedEpochDay == dia && state.selectedLevel == level
+                    val withWorkout = if (remoteWorkout != null && mesmaEscolha) state.comTreino(remoteWorkout) else state
+                    val lapsToUse = if (remoteLaps.isNotEmpty()) remoteLaps.sortedByDescending { it.setNumber } else withWorkout.stopwatch.completedLaps
+                    withWorkout.copy(
+                        stopwatch = withWorkout.stopwatch.copy(completedLaps = lapsToUse),
                         isSyncingWithSupabase = false,
                         userNotification = "Sincronizado com Supabase Cloud com sucesso!"
                     )
@@ -95,37 +163,45 @@ class AquagendaViewModel : ViewModel() {
         }
     }
 
+    /** Mostra na hora o treino embarcado e, com Supabase conectado, troca pelo do banco. */
+    private fun loadSuggestedWorkout() {
+        val state = _uiState.value
+        val dia = state.selectedEpochDay
+        val level = state.selectedLevel
+        _uiState.update { it.comTreino(treinos.embarcado(dia, level)) }
+
+        remoteWorkoutJob?.cancel()
+        if (state.supabaseStatus != SupabaseStatus.CONNECTED) return
+        remoteWorkoutJob = viewModelScope.launch {
+            val remoto = treinos.remoto(dia, level) ?: return@launch
+            _uiState.update { s ->
+                if (s.selectedEpochDay == dia && s.selectedLevel == level) s.comTreino(remoto) else s
+            }
+        }
+    }
+
     fun selectTab(tab: AppNavTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    fun selectDay(dayNumber: Int) {
+    fun selectDay(epochDay: Long) {
         _uiState.update { state ->
-            val updatedDays = state.calendarDays.map { day ->
-                day.copy(isSelected = (day.dayNumber == dayNumber))
-            }
-            state.copy(calendarDays = updatedDays)
+            state.copy(
+                selectedEpochDay = epochDay,
+                calendarDays = WorkoutRepository.semanaDoCalendario(epochDay)
+            )
         }
+        loadSuggestedWorkout()
+    }
+
+    fun selectToday() {
+        selectDay(DataCivil.hoje())
     }
 
     fun selectLevel(level: TrainingLevel) {
         if (_uiState.value.selectedLevel == level) return
-        val newWorkout = WorkoutRepository.getWorkoutForLevel(level)
-        val isAvancado = level == TrainingLevel.AVANCADO
-        _uiState.update { state ->
-            state.copy(
-                selectedLevel = level,
-                currentWorkout = newWorkout,
-                liveWorkout = state.liveWorkout.copy(
-                    totalMeters = newWorkout.totalDistanceMeters
-                ),
-                stopwatch = state.stopwatch.copy(
-                    totalSets = if (isAvancado) 10 else 8,
-                    setRepDescription = if (isAvancado) "10x100m Crawl" else "8x100m Crawl",
-                    targetIntervalSeconds = if (isAvancado) 95 else 105
-                )
-            )
-        }
+        _uiState.update { it.copy(selectedLevel = level) }
+        loadSuggestedWorkout()
     }
 
     fun startLiveWorkout() {
@@ -329,8 +405,14 @@ class AquagendaViewModel : ViewModel() {
 
         // Asynchronously persist to Supabase if configured
         viewModelScope.launch {
-            val workoutId = _uiState.value.currentWorkout.id
-            SupabaseRepository.recordSwimSet(newRecord, workoutId)
+            val workout = _uiState.value.currentWorkout
+            // Treino sugerido não é linha de public.workouts: a FK recusaria o id.
+            SupabaseRepository.recordSwimSet(
+                record = newRecord,
+                workoutId = workout.id.takeUnless { workout.isSuggestion },
+                repDescription = current.setRepDescription,
+                distanceMeters = current.setDistanceMeters
+            )
         }
 
         _uiState.update { state ->
@@ -389,6 +471,7 @@ class AquagendaViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        remoteWorkoutJob?.cancel()
         stopwatchJob?.cancel()
     }
 }

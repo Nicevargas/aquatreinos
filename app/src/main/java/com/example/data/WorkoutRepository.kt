@@ -1,5 +1,6 @@
 package com.example.data
 
+import com.example.data.ciclo.DataCivil
 import com.example.model.CalendarDay
 import com.example.model.PhaseStatus
 import com.example.model.TrainingLevel
@@ -9,14 +10,20 @@ import com.example.model.WorkoutSet
 
 object WorkoutRepository {
 
-    fun getInitialCalendarDays(): List<CalendarDay> = listOf(
-        CalendarDay("SEG", 12, isToday = false, isSelected = false),
-        CalendarDay("TER", 13, isToday = true, isSelected = true),
-        CalendarDay("QUA", 14, isToday = false, isSelected = false),
-        CalendarDay("QUI", 15, isToday = false, isSelected = false),
-        CalendarDay("SEX", 16, isToday = false, isSelected = false),
-        CalendarDay("SÁB", 17, isToday = false, isSelected = false)
-    )
+    /** Segunda a domingo da semana do dia [selecionado], como o ciclo do carrossel. */
+    fun semanaDoCalendario(selecionado: Long, hoje: Long = DataCivil.hoje()): List<CalendarDay> {
+        val segunda = DataCivil.segundaDaSemana(selecionado)
+        return (0 until 7).map { i ->
+            val dia = segunda + i
+            CalendarDay(
+                dayOfWeek = DataCivil.sigla(dia),
+                dayNumber = DataCivil.civil(dia).third,
+                epochDay = dia,
+                isToday = dia == hoje,
+                isSelected = dia == selecionado
+            )
+        }
+    }
 
     fun getWorkoutForLevel(level: TrainingLevel): Workout {
         return if (level == TrainingLevel.INTERMEDIARIO) {

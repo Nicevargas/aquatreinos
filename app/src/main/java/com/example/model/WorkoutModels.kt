@@ -1,13 +1,16 @@
 package com.example.model
 
-enum class TrainingLevel(val label: String) {
-    INTERMEDIARIO("Intermediário"),
-    AVANCADO("Avançado")
+// Os três níveis do carrossel "Cada Dia 1 Treino": 🟢 verde, 🟡 amarelo e 🔴 vermelho.
+enum class TrainingLevel(val label: String, val carouselLabel: String) {
+    INICIANTE("Iniciante", "Menor volume"),
+    INTERMEDIARIO("Intermediário", "Intermediário"),
+    AVANCADO("Avançado", "Maior volume + técnica")
 }
 
 data class CalendarDay(
     val dayOfWeek: String,
     val dayNumber: Int,
+    val epochDay: Long = 0L,
     val isToday: Boolean = false,
     val isSelected: Boolean = false
 )
@@ -26,7 +29,10 @@ data class WorkoutSet(
     val intensity: String = "Z3 (75%)",
     val restSeconds: Int = 30,
     val equipmentName: String? = "Palmar",
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val header: String = "", // como sai no carrossel: "8x50m Crawl"
+    val details: List<String> = emptyList(), // "25m ponta do dedo", "25m nado completo"
+    val distanceMeters: Int = 0
 )
 
 data class WorkoutPhase(
@@ -50,8 +56,21 @@ data class Workout(
     val calories: Int,
     val level: TrainingLevel,
     val phases: List<WorkoutPhase>,
-    val motivationalTip: String = "Mantenha a técnica na fase principal! Respiração bilateral e braçadas consistentes."
-)
+    val motivationalTip: String = "Mantenha a técnica na fase principal! Respiração bilateral e braçadas consistentes.",
+    val workoutDate: String? = null, // AAAA-MM-DD
+    val isSuggestion: Boolean = false, // veio do ciclo do carrossel, não de public.workouts
+    val focus: String? = null, // Técnica, Aeróbico, Velocidade...
+    val cycleDay: Int? = null
+) {
+    /** Material usado em alguma série, na ordem em que aparece. */
+    val equipment: List<String>
+        get() = phases
+            .flatMap { it.sets }
+            .flatMap { it.equipmentName?.split("+").orEmpty() }
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinctBy { it.lowercase() }
+}
 
 enum class AppNavTab(val title: String) {
     HOME("Home"),

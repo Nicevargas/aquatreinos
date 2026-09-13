@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Pool
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -47,6 +49,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.data.AquagendaConstants
 import com.example.model.Workout
+import com.example.model.WorkoutPhase
 import com.example.ui.theme.AquaBlueBg
 import com.example.ui.theme.AquaBorder
 import com.example.ui.theme.AquaCyan
@@ -142,7 +145,7 @@ fun WorkoutsScreen(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "TREINO DO DIA",
+                        text = if (workout.isSuggestion) "SUGESTÃO DO DIA" else "TREINO DO DIA",
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -151,12 +154,21 @@ fun WorkoutsScreen(
                 }
 
                 Text(
-                    text = "Prepare-se",
+                    text = workout.title,
                     color = AquaTextPrimary,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+
+                if (workout.subtitle.isNotBlank()) {
+                    Text(
+                        text = workout.subtitle,
+                        color = AquaTextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
 
@@ -273,33 +285,29 @@ fun WorkoutsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Palmar
-                EquipmentCard(
-                    title = "Palmar",
-                    icon = Icons.Outlined.FrontHand,
-                    accentColor = AquaPrimary,
-                    modifier = Modifier.weight(1f)
+            val materiais = workout.equipment
+            if (materiais.isEmpty()) {
+                Text(
+                    text = "Nenhum material neste treino: só você e a piscina.",
+                    fontSize = 13.sp,
+                    color = AquaTextSecondary,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
-
-                // Pull Buoy
-                EquipmentCard(
-                    title = "Pull Buoy",
-                    icon = Icons.Outlined.WaterDrop,
-                    accentColor = AquaMagenta,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Nadadeira
-                EquipmentCard(
-                    title = "Nadadeira",
-                    icon = Icons.Outlined.Pool,
-                    accentColor = AquaGreen,
-                    modifier = Modifier.weight(1f)
-                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    materiais.forEach { nome ->
+                        val (icone, cor) = iconeDoMaterial(nome)
+                        EquipmentCard(
+                            title = nome,
+                            icon = icone,
+                            accentColor = cor,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -318,9 +326,7 @@ fun WorkoutsScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 workout.phases.forEach { phase ->
                     WorkoutStructurePhaseCard(
-                        title = phase.title,
-                        description = phase.summary,
-                        percentage = "${phase.percentage}%",
+                        phase = phase,
                         accentColor = when (phase.title) {
                             "Aquecimento" -> AquaGreen
                             "Principal" -> AquaPrimary
@@ -420,13 +426,21 @@ private fun EquipmentCard(
     }
 }
 
+private fun iconeDoMaterial(nome: String): Pair<ImageVector, Color> = when (nome.lowercase()) {
+    "palmar" -> Icons.Outlined.FrontHand to AquaPrimary
+    "pull buoy" -> Icons.Outlined.WaterDrop to AquaMagenta
+    "nadadeira" -> Icons.Outlined.Pool to AquaGreen
+    else -> Icons.Outlined.Straighten to AquaYellow
+}
+
+/** Uma fase do treino com as séries do jeito que saem no carrossel. */
 @Composable
 private fun WorkoutStructurePhaseCard(
-    title: String,
-    description: String,
-    percentage: String,
+    phase: WorkoutPhase,
     accentColor: Color
 ) {
+    val title = phase.title
+    val percentage = "${phase.percentage}%"
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -440,7 +454,7 @@ private fun WorkoutStructurePhaseCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             // Colored Vertical Pill Line
             Box(
@@ -455,17 +469,37 @@ private fun WorkoutStructurePhaseCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = "$title · ${phase.distanceMeters}m",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = AquaTextPrimary
                 )
-                Text(
-                    text = description,
-                    fontSize = 13.sp,
-                    color = AquaTextSecondary,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                if (phase.sets.isEmpty()) {
+                    Text(
+                        text = phase.summary,
+                        fontSize = 13.sp,
+                        color = AquaTextSecondary,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                phase.sets.forEach { set ->
+                    Text(
+                        text = set.header.ifBlank { "${set.repsDistance}m ${set.description}" },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AquaTextPrimary,
+                        modifier = Modifier.padding(top = 6.dp)
+                    )
+                    val cauda = (set.details + listOfNotNull(set.intervalTarget.takeIf { it.isNotBlank() }?.let { "Int: $it" }))
+                        .joinToString(" · ")
+                    if (cauda.isNotEmpty()) {
+                        Text(
+                            text = cauda,
+                            fontSize = 12.sp,
+                            color = AquaTextSecondary
+                        )
+                    }
+                }
             }
 
             // Percentage pill badge

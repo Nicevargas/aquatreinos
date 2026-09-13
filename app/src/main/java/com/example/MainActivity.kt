@@ -76,7 +76,7 @@ fun AquagendaApp(
                     isExecutionMode = false,
                     showUserAvatar = uiState.selectedTab == AppNavTab.PROFILE,
                     onNotificationClick = {
-                        viewModel.selectDay(13)
+                        viewModel.selectToday()
                     }
                 )
             },

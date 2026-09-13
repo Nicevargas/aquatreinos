@@ -29,6 +29,12 @@ interface SupabaseApi {
         @Query("select") select: String = "*"
     ): Response<List<WorkoutDto>>
 
+    // Treino do ciclo do carrossel para a data e o nível (função SQL no Supabase).
+    @POST("rest/v1/rpc/treinos_sugeridos")
+    suspend fun getTreinosSugeridos(
+        @Body params: TreinosSugeridosParams
+    ): Response<List<WorkoutDto>>
+
     @POST("rest/v1/workouts")
     @Headers("Prefer: return=representation")
     suspend fun insertWorkout(
