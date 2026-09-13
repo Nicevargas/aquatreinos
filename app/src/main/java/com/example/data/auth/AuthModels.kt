@@ -25,6 +25,23 @@ data class RefreshGrantBody(
 )
 
 @JsonClass(generateAdapter = true)
+data class RecoverBody(
+    @Json(name = "email") val email: String
+)
+
+@JsonClass(generateAdapter = true)
+data class VerifyOtpBody(
+    @Json(name = "type") val type: String,
+    @Json(name = "email") val email: String,
+    @Json(name = "token") val token: String
+)
+
+@JsonClass(generateAdapter = true)
+data class UpdatePasswordBody(
+    @Json(name = "password") val password: String
+)
+
+@JsonClass(generateAdapter = true)
 data class AuthUserDto(
     @Json(name = "id") val id: String? = null,
     @Json(name = "email") val email: String? = null,

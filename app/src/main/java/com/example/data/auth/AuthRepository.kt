@@ -2,6 +2,7 @@ package com.example.data.auth
 
 import android.content.Context
 import android.util.Log
+import com.example.data.Resultado
 import com.example.data.supabase.SupabaseClient
 import com.example.model.TrainingLevel
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,25 @@ object AuthRepository {
                 ResultadoAuth.Erro("Não foi possível criar a conta. Tente de novo.")
             }
         }
+
+    // ---- Esqueci minha senha ----
+
+    private fun recuperacao(): RecuperacaoDeSenha? = SupabaseClient.authApi?.let { RecuperacaoDeSenha(it) }
+
+    suspend fun enviarCodigoDeRecuperacao(email: String): Resultado<Unit> =
+        recuperacao()?.enviarCodigo(email) ?: Resultado.Falha(MensagensAuth.SEM_CONFIGURACAO)
+
+    /** A sessão devolvida NÃO é salva: só vale depois que a senha nova for gravada. */
+    suspend fun verificarCodigoDeRecuperacao(email: String, codigo: String): Resultado<Sessao> =
+        recuperacao()?.verificarCodigo(email, codigo) ?: Resultado.Falha(MensagensAuth.SEM_CONFIGURACAO)
+
+    /** Grava a senha nova e, dando certo, entra na conta com a sessão de recuperação. */
+    suspend fun definirNovaSenha(sessao: Sessao, novaSenha: String): Resultado<Unit> {
+        val resultado = recuperacao()?.trocarSenha(sessao, novaSenha)
+            ?: Resultado.Falha(MensagensAuth.SEM_CONFIGURACAO)
+        if (resultado is Resultado.Ok) store().salvar(sessao)
+        return resultado
+    }
 
     /** Encerra no servidor quando der; no aparelho, sempre. */
     suspend fun sair() {

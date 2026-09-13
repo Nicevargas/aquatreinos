@@ -1,0 +1,13 @@
+<!--
+  Supabase: Authentication > Emails > Templates > Magic link or OTP
+  Assunto: Seu acesso ao Aquagenda
+-->
+<h2>Entrar no Aquagenda</h2>
+
+<p>Use o link abaixo para entrar na sua conta:</p>
+
+<p><a href="{{ .ConfirmationURL }}">Entrar no Aquagenda</a></p>
+
+<p>Ou, se preferir, digite este código: <strong>{{ .Token }}</strong></p>
+
+<p>Se não foi você que pediu, ignore este e-mail.</p>

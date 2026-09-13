@@ -18,6 +18,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class EtapaRecuperacao { EMAIL, CODIGO }
+
+data class RecuperacaoUiState(
+    val etapa: EtapaRecuperacao = EtapaRecuperacao.EMAIL,
+    val email: String = "",
+    val enviando: Boolean = false,
+    val erro: String? = null,
+    val aviso: String? = null,
+    // Código já trocado por sessão: falta só uma senha que o Supabase aceite.
+    val codigoValidado: Boolean = false,
+    // O Supabase recusa novo envio antes de 60 s.
+    val reenviarLiberadoEm: Long = 0L
+)
+
 data class ContaUiState(
     val configurado: Boolean = SupabaseClient.isConfigured,
     val sessao: Sessao? = null,
@@ -27,14 +41,18 @@ data class ContaUiState(
     val perfil: Perfil? = null,
     val carregandoPerfil: Boolean = false,
     val salvandoPerfil: Boolean = false,
-    val excluindoConta: Boolean = false
+    val excluindoConta: Boolean = false,
+    val recuperacao: RecuperacaoUiState? = null
 )
 
-/** Login, cadastro, sair, e o CRUD do próprio perfil (inclusive excluir a conta). */
+/** Login, cadastro, esqueci minha senha, sair, e o CRUD do próprio perfil. */
 class ContaViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _ui = MutableStateFlow(ContaUiState())
     val ui: StateFlow<ContaUiState> = _ui.asStateFlow()
+
+    // Fica só na memória: se o app fechar, o código já gasto não volta.
+    private var sessaoDeRecuperacao: Sessao? = null
 
     init {
         AuthRepository.init(application)
@@ -89,6 +107,95 @@ class ContaViewModel(application: Application) : AndroidViewModel(application) {
     fun limparMensagens() {
         _ui.update { it.copy(erro = null, aviso = null) }
     }
+
+    // ---- Esqueci minha senha ----
+
+    fun abrirRecuperacao(emailDigitado: String) {
+        sessaoDeRecuperacao = null
+        _ui.update {
+            it.copy(erro = null, aviso = null, recuperacao = RecuperacaoUiState(email = emailDigitado.trim()))
+        }
+    }
+
+    fun fecharRecuperacao() {
+        sessaoDeRecuperacao = null
+        _ui.update { it.copy(recuperacao = null) }
+    }
+
+    fun trocarEmailDaRecuperacao() {
+        sessaoDeRecuperacao = null
+        atualizarRecuperacao { it.copy(etapa = EtapaRecuperacao.EMAIL, erro = null, aviso = null, codigoValidado = false) }
+    }
+
+    fun enviarCodigo(email: String, agoraMillis: Long = System.currentTimeMillis()) {
+        val atual = _ui.value.recuperacao ?: return
+        if (atual.enviando) return
+        if (atual.etapa == EtapaRecuperacao.CODIGO && agoraMillis < atual.reenviarLiberadoEm) return
+        MensagensAuth.validarEmail(email)?.let { invalido ->
+            atualizarRecuperacao { it.copy(erro = invalido, aviso = null) }
+            return
+        }
+
+        sessaoDeRecuperacao = null
+        atualizarRecuperacao { it.copy(enviando = true, erro = null, aviso = null) }
+        viewModelScope.launch {
+            when (val r = AuthRepository.enviarCodigoDeRecuperacao(email)) {
+                is Resultado.Ok -> atualizarRecuperacao {
+                    it.copy(
+                        etapa = EtapaRecuperacao.CODIGO,
+                        email = email.trim(),
+                        enviando = false,
+                        codigoValidado = false,
+                        // O Supabase não conta se o e-mail tem conta; a tela também não.
+                        aviso = "Se houver uma conta com ${email.trim()}, o código chega em instantes. Confira também o spam.",
+                        reenviarLiberadoEm = System.currentTimeMillis() + 60_000
+                    )
+                }
+                is Resultado.Falha -> atualizarRecuperacao { it.copy(enviando = false, erro = r.mensagem) }
+            }
+        }
+    }
+
+    fun redefinirSenha(codigo: String, novaSenha: String, confirmacao: String) {
+        val atual = _ui.value.recuperacao ?: return
+        if (atual.enviando) return
+        val invalido = (if (sessaoDeRecuperacao == null) MensagensAuth.validarCodigo(codigo) else null)
+            ?: MensagensAuth.validarSenha(novaSenha)
+            ?: MensagensAuth.validarConfirmacao(novaSenha, confirmacao)
+        if (invalido != null) {
+            atualizarRecuperacao { it.copy(erro = invalido, aviso = null) }
+            return
+        }
+
+        atualizarRecuperacao { it.copy(enviando = true, erro = null, aviso = null) }
+        viewModelScope.launch {
+            val sessao = sessaoDeRecuperacao ?: when (val v = AuthRepository.verificarCodigoDeRecuperacao(atual.email, codigo)) {
+                is Resultado.Ok -> v.valor.also {
+                    sessaoDeRecuperacao = it
+                    atualizarRecuperacao { s -> s.copy(codigoValidado = true) }
+                }
+                is Resultado.Falha -> {
+                    atualizarRecuperacao { it.copy(enviando = false, erro = v.mensagem) }
+                    return@launch
+                }
+            }
+
+            when (val t = AuthRepository.definirNovaSenha(sessao, novaSenha)) {
+                is Resultado.Ok -> {
+                    sessaoDeRecuperacao = null
+                    _ui.update { it.copy(recuperacao = null, aviso = "Senha alterada.") }
+                }
+                // O código já foi gasto, mas a sessão de recuperação continua guardada.
+                is Resultado.Falha -> atualizarRecuperacao { it.copy(enviando = false, erro = t.mensagem) }
+            }
+        }
+    }
+
+    private fun atualizarRecuperacao(transformar: (RecuperacaoUiState) -> RecuperacaoUiState) {
+        _ui.update { s -> s.recuperacao?.let { s.copy(recuperacao = transformar(it)) } ?: s }
+    }
+
+    // ---- Perfil ----
 
     fun carregarPerfil() {
         val sessao = _ui.value.sessao ?: return

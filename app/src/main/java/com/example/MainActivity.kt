@@ -32,6 +32,7 @@ import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LiveWorkoutExecutionScreen
 import com.example.ui.screens.MeusTreinosScreen
 import com.example.ui.screens.ProfileScreen
+import com.example.ui.screens.RecuperarSenhaScreen
 import com.example.ui.screens.WorkoutsScreen
 import com.example.ui.theme.AquaBackground
 import com.example.ui.theme.MyApplicationTheme
@@ -61,12 +62,24 @@ fun AquagendaRaiz(
 ) {
     val estadoConta by conta.ui.collectAsStateWithLifecycle()
 
-    if (estadoConta.sessao == null) {
+    val recuperacao = estadoConta.recuperacao
+
+    if (estadoConta.sessao == null && recuperacao != null) {
+        RecuperarSenhaScreen(
+            estado = recuperacao,
+            configurado = estadoConta.configurado,
+            onEnviarCodigo = { conta.enviarCodigo(it) },
+            onRedefinir = conta::redefinirSenha,
+            onTrocarEmail = conta::trocarEmailDaRecuperacao,
+            onVoltar = conta::fecharRecuperacao
+        )
+    } else if (estadoConta.sessao == null) {
         AuthScreen(
             estado = estadoConta,
             onEntrar = conta::entrar,
             onCadastrar = conta::cadastrar,
-            onLimparMensagens = conta::limparMensagens
+            onLimparMensagens = conta::limparMensagens,
+            onEsqueciSenha = conta::abrirRecuperacao
         )
     } else {
         AquagendaApp(conta = conta, estadoConta = estadoConta)

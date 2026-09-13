@@ -35,6 +35,27 @@ class MensagensAuthTest {
     }
 
     @Test
+    fun `traduz os erros da recuperacao de senha`() {
+        assertEquals("Código inválido ou vencido. Confira os números ou peça um novo.",
+            MensagensAuth.deErroDeAuth(403, """{"code":403,"error_code":"otp_expired","msg":"Token has expired or is invalid"}"""))
+        // A frase contém "password should be": não pode cair em "senha fraca".
+        assertEquals("A nova senha precisa ser diferente da anterior.",
+            MensagensAuth.deErroDeAuth(422, """{"error_code":"same_password","msg":"New password should be different from the old password."}"""))
+        assertEquals("Muitas tentativas. Espere alguns minutos e tente de novo.",
+            MensagensAuth.deErroDeAuth(429, """{"error_code":"over_email_send_rate_limit","msg":"email rate limit exceeded"}"""))
+    }
+
+    @Test
+    fun `valida codigo e confirmacao`() {
+        assertNull(MensagensAuth.validarCodigo("123456"))
+        assertNull(MensagensAuth.validarCodigo(" 12345678 "))
+        assertNotNull(MensagensAuth.validarCodigo("12345"))
+        assertNotNull(MensagensAuth.validarCodigo("12a456"))
+        assertNull(MensagensAuth.validarConfirmacao("nova123", "nova123"))
+        assertNotNull(MensagensAuth.validarConfirmacao("nova123", "nova124"))
+    }
+
+    @Test
     fun `valida o formulario`() {
         assertNull(MensagensAuth.validarEmail(" ana@exemplo.com "))
         assertNotNull(MensagensAuth.validarEmail("ana@exemplo"))

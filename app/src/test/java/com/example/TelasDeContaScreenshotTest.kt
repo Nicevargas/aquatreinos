@@ -57,20 +57,7 @@ class TelasDeContaScreenshotTest {
             ).toDomain()
         }
 
-    @Test
-    fun login_com_erro() {
-        composeTestRule.setContent {
-            MyApplicationTheme {
-                AuthScreen(
-                    estado = ContaUiState(configurado = true, erro = "E-mail ou senha incorretos."),
-                    onEntrar = { _, _ -> },
-                    onCadastrar = { _, _, _, _ -> },
-                    onLimparMensagens = {}
-                )
-            }
-        }
-        composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/conta_login.png")
-    }
+    // A tela de login (com "Esqueci minha senha") fica em RecuperarSenhaScreenshotTest.
 
     @Test
     fun cadastro() {

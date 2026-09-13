@@ -17,6 +17,25 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+/**
+ * Qual Authorization vai em cada chamada.
+ *
+ * Login, cadastro, renovação e recuperação de senha vão com a chave pública; o
+ * resto vai com o token de quem está logado, que é o que o RLS enxerga como
+ * auth.uid(). Se quem chamou já pôs um Authorization (troca de senha com a
+ * sessão de recuperação), ele é mantido.
+ */
+internal fun escolherAuthorization(
+    caminho: String,
+    explicito: String?,
+    tokenDaSessao: String?,
+    chaveAnon: String
+): String {
+    if (explicito != null) return explicito
+    val usaSessao = !caminho.contains("/auth/v1/") || caminho.endsWith("/logout")
+    return "Bearer ${tokenDaSessao?.takeIf { usaSessao } ?: chaveAnon}"
+}
+
 enum class SupabaseStatus {
     CONNECTED,
     CONFIG_NEEDED,
@@ -52,14 +71,17 @@ object SupabaseClient {
 
     private val authInterceptor = Interceptor { chain ->
         val original = chain.request()
-        val caminho = original.url.encodedPath
-        // Login, cadastro e renovação vão com a chave pública; o resto, com o
-        // token de quem está logado (é ele que o RLS enxerga como auth.uid()).
-        val usaSessao = !caminho.contains("/auth/v1/") || caminho.endsWith("/logout")
-        val token = sessaoStore?.atual()?.accessToken?.takeIf { usaSessao } ?: supabaseAnonKey
         val requestBuilder = original.newBuilder()
             .header("apikey", supabaseAnonKey)
-            .header("Authorization", "Bearer $token")
+            .header(
+                "Authorization",
+                escolherAuthorization(
+                    caminho = original.url.encodedPath,
+                    explicito = original.header("Authorization"),
+                    tokenDaSessao = sessaoStore?.atual()?.accessToken,
+                    chaveAnon = supabaseAnonKey
+                )
+            )
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
         chain.proceed(requestBuilder.build())

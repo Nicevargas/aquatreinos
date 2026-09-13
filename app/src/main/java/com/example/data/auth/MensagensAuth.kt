@@ -27,6 +27,11 @@ object MensagensAuth {
                 "E-mail ou senha incorretos."
             codigo == "email_not_confirmed" || "email not confirmed" in texto ->
                 "Confirme seu e-mail antes de entrar: o link está na sua caixa de entrada."
+            codigo == "otp_expired" || "token has expired or is invalid" in texto ->
+                "Código inválido ou vencido. Confira os números ou peça um novo."
+            // Antes de weak_password: a mensagem também contém "password should be".
+            codigo == "same_password" || "different from the old password" in texto ->
+                "A nova senha precisa ser diferente da anterior."
             codigo == "user_already_exists" || codigo == "email_exists" || "already registered" in texto ->
                 "Já existe uma conta com este e-mail. Entre com ela."
             codigo == "weak_password" || "password should be" in texto ->
@@ -63,4 +68,11 @@ object MensagensAuth {
 
     fun validarSenha(senha: String): String? =
         if (senha.length >= 6) null else "A senha precisa de pelo menos 6 caracteres."
+
+    // O Supabase manda 6 dígitos por padrão; o painel permite até 10.
+    fun validarCodigo(codigo: String): String? =
+        if (codigo.trim().matches(Regex("""\d{6,10}"""))) null else "Digite o código de números que chegou por e-mail."
+
+    fun validarConfirmacao(senha: String, confirmacao: String): String? =
+        if (senha == confirmacao) null else "As duas senhas não conferem."
 }

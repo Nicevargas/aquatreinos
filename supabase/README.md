@@ -36,6 +36,34 @@ A migração se confere no fim: se a chave pública ainda conseguir ler perfis o
 
 Se a confirmação de e-mail estiver ligada em *Authentication → Providers → Email*, o cadastro pelo app avisa para confirmar o e-mail antes de entrar.
 
+### Esqueci minha senha
+
+A recuperação acontece dentro do app, com um **código** enviado por e-mail:
+
+1. A pessoa digita o e-mail e o app pede o envio (`POST /auth/v1/recover`).
+2. A pessoa digita o código, a senha nova e a confirmação. O app troca o código por uma sessão (`POST /auth/v1/verify`, `type: recovery`), grava a senha (`PUT /auth/v1/user`) e entra na conta.
+
+O e-mail padrão "Reset Password" do Supabase só traz um link, e o link abre no navegador, não no app. Por isso o modelo `supabase/templates/redefinir_senha.html` mostra o código (`{{ .Token }}`).
+
+O Supabase só aceita um novo envio para o mesmo e-mail depois de 60 segundos, e a tela respeita isso.
+
+### Modelos de e-mail em português
+
+O Supabase só deixa editar os modelos com **SMTP próprio**. O projeto usa o Brevo, configurado em *Authentication → Emails → SMTP Settings*. Com o SMTP ligado, o limite padrão é de 30 e-mails por hora (ajustável em *Rate Limits*).
+
+Os modelos de `supabase/templates/` estão aplicados em *Authentication → Emails → Templates* (desde 13/09/2026). O assunto de cada um está no comentário do topo do arquivo:
+
+| Modelo no Supabase | Arquivo |
+|---|---|
+| Confirm sign up | `confirmar_cadastro.html` |
+| Invite user | `convite.html` |
+| Magic link or OTP | `link_de_acesso.html` |
+| Change email address | `trocar_email.html` |
+| Reset password | `redefinir_senha.html` |
+| Reauthentication | `reautenticacao.html` |
+
+Ao mudar um arquivo, cole de novo no painel, sem o comentário do topo.
+
 ## Treinos sugeridos (carrossel → banco → app)
 
 A fonte é o `treinos.json` do repositório [natacao-treinos](https://github.com/Nicevargas/natacao-treinos), o mesmo arquivo que gera o carrossel do Instagram.

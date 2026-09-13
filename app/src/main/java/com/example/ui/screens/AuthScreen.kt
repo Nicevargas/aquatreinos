@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -65,7 +67,8 @@ fun AuthScreen(
     onCadastrar: (nome: String, email: String, senha: String, nivel: TrainingLevel) -> Unit,
     onLimparMensagens: () -> Unit,
     modifier: Modifier = Modifier,
-    comecarNoCadastro: Boolean = false
+    comecarNoCadastro: Boolean = false,
+    onEsqueciSenha: (emailDigitado: String) -> Unit = {}
 ) {
     var cadastro by rememberSaveable { mutableStateOf(comecarNoCadastro) }
     var nome by rememberSaveable { mutableStateOf("") }
@@ -211,6 +214,21 @@ fun AuthScreen(
                 .fillMaxWidth()
                 .testTag("campo_senha")
         )
+
+        if (!cadastro) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = { onEsqueciSenha(email) },
+                    enabled = !estado.enviando,
+                    modifier = Modifier.testTag("esqueci_senha")
+                ) {
+                    Text("Esqueci minha senha", fontWeight = FontWeight.SemiBold, color = AquaPrimary)
+                }
+            }
+        }
 
         if (cadastro) {
             Spacer(modifier = Modifier.height(16.dp))
