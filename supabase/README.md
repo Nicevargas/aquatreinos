@@ -69,7 +69,7 @@ Os modelos de `supabase/templates/` estão aplicados em *Authentication → Emai
 | MFA method added (Security) | `aviso_verificacao_adicionada.html` |
 | MFA method removed (Security) | `aviso_verificacao_removida.html` |
 
-Os avisos de segurança vêm desligados ("Enable notification"). Traduzir não liga nenhum deles. **Pendente:** as traduções dos 7 avisos de segurança (`aviso_*.html`) estão prontas aqui, mas ainda não foram coladas no painel.
+Os avisos de segurança vêm desligados ("Enable notification"). Traduzir não liga nenhum deles: os 7 estão aplicados em português desde 13/09/2026 e continuam desligados.
 
 Ao mudar um arquivo, cole de novo no painel, sem o comentário do topo.
 
