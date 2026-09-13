@@ -10,6 +10,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import com.example.ui.components.corDoNivel
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -104,7 +107,15 @@ fun HomeScreen(
             onDayClick = onDayClick
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Nível logo acima do treino: trocar o nível troca o cartão de baixo.
+        TrainingLevelToggle(
+            selectedLevel = selectedLevel,
+            onLevelChange = onLevelChange
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Hero Card with direct image link from HTML
         HeroSwimmerCard(
@@ -117,7 +128,12 @@ fun HomeScreen(
         // Info Cards (Distância & Tempo Estimado)
         WorkoutMetricBentoCards(workout = workout)
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // O botão principal fica junto do treino que ele inicia, não depois do cronômetro e do gráfico.
+        BotaoIniciarTreino(onClick = onStartWorkoutClick)
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Real-Time Swimming Set Stopwatch Component
         SwimSetStopwatchCard(
@@ -140,77 +156,73 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Level Toggle: os três níveis do carrossel
-        TrainingLevelToggle(
-            selectedLevel = selectedLevel,
-            onLevelChange = onLevelChange
-        )
+        // A barra de baixo já desconta a própria altura (innerPadding do Scaffold).
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Big Primary CTA: Iniciar Treino
-        Button(
-            onClick = onStartWorkoutClick,
+@Composable
+private fun BotaoIniciarTreino(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(18.dp),
+                spotColor = AquaPrimary.copy(alpha = 0.35f)
+            )
+            .testTag("start_workout_cta"),
+        shape = RoundedCornerShape(18.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(58.dp)
-                .shadow(
-                    elevation = 10.dp,
-                    shape = RoundedCornerShape(18.dp),
-                    spotColor = AquaPrimary.copy(alpha = 0.35f)
-                )
-                .testTag("start_workout_cta"),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            AquaPrimary,
+                            Color(0xFF0070E6),
+                            AquaMagenta
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                AquaPrimary,
-                                Color(0xFF0070E6),
-                                AquaMagenta
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.25f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Text(
-                        text = "Iniciar Treino",
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Text(
+                    text = "Iniciar Treino",
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.3.sp,
+                    softWrap = false
+                )
             }
         }
-
-        Spacer(modifier = Modifier.height(100.dp)) // Padding for bottom bar
     }
 }
 
@@ -407,14 +419,18 @@ private fun HeroSwimmerCard(
 
 @Composable
 private fun WorkoutMetricBentoCards(workout: Workout) {
+    // Altura pela maior: os dois cartões ficam iguais mesmo com a letra grande.
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Distance Card
         Surface(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(20.dp))
                 .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = AquaPrimary.copy(alpha = 0.08f)),
             shape = RoundedCornerShape(20.dp),
@@ -479,6 +495,7 @@ private fun WorkoutMetricBentoCards(workout: Workout) {
         Surface(
             modifier = Modifier
                 .weight(1f)
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(20.dp))
                 .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = AquaPrimary.copy(alpha = 0.08f)),
             shape = RoundedCornerShape(20.dp),
@@ -510,7 +527,7 @@ private fun WorkoutMetricBentoCards(workout: Workout) {
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "TEMPO EST.",
+                        text = "TEMPO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = AquaTextSecondary,
@@ -566,37 +583,30 @@ private fun TrainingLevelToggle(
                         .clip(RoundedCornerShape(50.dp))
                         .then(
                             if (isSelected) {
-                                Modifier
-                                    .background(Color.White)
-                                    .shadow(2.dp, RoundedCornerShape(50.dp))
+                                Modifier.background(Color.White)
                             } else {
                                 Modifier.clickable { onLevelChange(level) }
                             }
                         )
-                        .padding(vertical = 10.dp)
+                        .padding(vertical = 8.dp, horizontal = 2.dp)
                         .testTag("training_level_${level.name.lowercase()}"),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Mesma cor do nível no carrossel: verde, amarelo, vermelho.
+                    // Bolinha em cima do nome: lado a lado, "Intermediário" não cabia no celular estreito.
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    when (level) {
-                                        TrainingLevel.INICIANTE -> AquaGreen
-                                        TrainingLevel.INTERMEDIARIO -> AquaYellow
-                                        TrainingLevel.AVANCADO -> AquaMagenta
-                                    }
-                                )
+                                .background(corDoNivel(level))
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = level.label,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
+                            softWrap = false,
                             color = if (isSelected) AquaPrimary else AquaTextSecondary
                         )
                     }

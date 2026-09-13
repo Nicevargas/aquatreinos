@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -337,6 +339,7 @@ private fun CabecalhoDeTempo(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CartaoSerieAtual(passo: PassoDeTreino, progresso: ProgressoExecucao, roteiro: RoteiroDeTreino) {
     val proximo = roteiro.proximoPasso(progresso)
@@ -386,9 +389,11 @@ private fun CartaoSerieAtual(passo: PassoDeTreino, progresso: ProgressoExecucao,
                     passo.serie.equipmentName?.let { Icons.Outlined.FrontHand to it }
                 )
                 if (etiquetas.isNotEmpty()) {
-                    Row(
+                    // Intervalo e material: se não couberem na mesma linha, o segundo desce.
+                    FlowRow(
                         modifier = Modifier.padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         etiquetas.forEach { (icone, texto) ->
                             Row(
@@ -595,8 +600,12 @@ private fun ItemDaLinhaDoTempo(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // weight: o título quebra em palavras e o selo ("CONCLUÍDA") não é espremido.
                 Text(
                     text = titulo,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
                     fontSize = if (atual) 17.sp else 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = when {
@@ -619,6 +628,7 @@ private fun ItemDaLinhaDoTempo(
                 ) {
                     Text(
                         text = rotulo,
+                        softWrap = false,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = when {
@@ -704,7 +714,7 @@ private fun BarraDeExecucao(
                 onClick = onVoltar,
                 enabled = podeVoltar,
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(48.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(AquaSurfaceContainerLow)
                     .testTag("desfazer_toque")
@@ -725,7 +735,7 @@ private fun BarraDeExecucao(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = AquaSurfaceContainerLow),
                 border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder),
-                contentPadding = PaddingValues(horizontal = 8.dp)
+                contentPadding = PaddingValues(horizontal = 6.dp)
             ) {
                 Icon(
                     imageVector = if (rodando) Icons.Filled.Pause else Icons.Filled.PlayArrow,
@@ -733,14 +743,21 @@ private fun BarraDeExecucao(
                     tint = AquaMagenta,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(if (rodando) "Pausar" else "Retomar", color = AquaTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (rodando) "Pausar" else "Retomar",
+                    color = AquaTextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    softWrap = false
+                )
             }
 
+            // Mais largura para o botão que se toca a cada repetição: "Repetição feita" era cortado nas bordas.
             Button(
                 onClick = if (terminou) onConcluir else onAvancar,
                 modifier = Modifier
-                    .weight(1.5f)
+                    .weight(1.7f)
                     .height(52.dp)
                     .testTag(if (terminou) "concluir_treino" else "marcar_feito"),
                 shape = RoundedCornerShape(14.dp),
@@ -767,15 +784,16 @@ private fun BarraDeExecucao(
                                 else -> "Série feita"
                             },
                             color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            softWrap = false
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = if (terminou) Icons.Filled.Check else Icons.Filled.ChevronRight,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -925,10 +943,11 @@ private fun BlocoDeNumero(rotulo: String, valor: String, detalhe: String, modifi
         color = Color.White,
         border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(rotulo.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AquaTextSecondary, letterSpacing = 0.8.sp)
-            Text(valor, fontSize = 20.sp, fontWeight = FontWeight.Black, color = AquaPrimary, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
-            Text(detalhe, fontSize = 11.sp, color = AquaTextSecondary, maxLines = 1)
+        // Três blocos numa linha: número um pouco menor para "12.400m" caber inteiro.
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp)) {
+            Text(rotulo.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AquaTextSecondary, letterSpacing = 0.8.sp, softWrap = false)
+            Text(valor, fontSize = 18.sp, fontWeight = FontWeight.Black, color = AquaPrimary, softWrap = false, modifier = Modifier.padding(top = 4.dp))
+            Text(detalhe, fontSize = 11.sp, color = AquaTextSecondary, softWrap = false)
         }
     }
 }

@@ -1,6 +1,10 @@
 package com.example
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.example.ui.theme.AquaBackground
 import androidx.compose.ui.test.onRoot
 import com.example.data.WorkoutRepository
 import com.example.data.ciclo.CicloDeTreinos
@@ -35,7 +39,10 @@ class TreinoSugeridoScreenshotTest {
         val treino = ciclo.sugestao(dia, TrainingLevel.INTERMEDIARIO)!!
         composeTestRule.setContent {
             MyApplicationTheme {
-                WorkoutsScreen(workout = treino, onStartWorkoutClick = {})
+                // Mesmo fundo do app (o Scaffold pinta AquaBackground): sem ele, a captura saía com fundo escuro.
+                Box(Modifier.background(AquaBackground)) {
+                    WorkoutsScreen(workout = treino, onStartWorkoutClick = {})
+                }
             }
         }
         composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/treino_sugerido.png")
@@ -46,6 +53,7 @@ class TreinoSugeridoScreenshotTest {
         val treino = ciclo.sugestao(dia, TrainingLevel.INICIANTE)!!
         composeTestRule.setContent {
             MyApplicationTheme {
+                Box(Modifier.background(AquaBackground)) {
                 HomeScreen(
                     workout = treino,
                     selectedLevel = TrainingLevel.INICIANTE,
@@ -62,6 +70,7 @@ class TreinoSugeridoScreenshotTest {
                     onStopwatchPrevSet = {},
                     onStopwatchNextSet = {}
                 )
+                }
             }
         }
         composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/home_tres_niveis.png")

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -180,7 +181,10 @@ fun ContaCard(
                         ) {
                             Text(
                                 text = "${metros}m",
-                                modifier = Modifier.padding(vertical = 10.dp),
+                                // fillMaxWidth: sem ele o textAlign não centraliza e "25m" ficava no canto.
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
                                 fontWeight = FontWeight.Bold,
                                 color = if (ativo) AquaPrimary else AquaTextPrimary,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -261,7 +265,10 @@ fun ContaCard(
             TextButton(
                 onClick = { confirmarExclusao = true },
                 enabled = !estado.excluindoConta,
-                modifier = Modifier.testTag("excluir_conta")
+                // O TextButton tem 12dp de folga interna: puxa para o texto alinhar com a margem do cartão.
+                modifier = Modifier
+                    .offset(x = (-12).dp)
+                    .testTag("excluir_conta")
             ) {
                 Text(
                     text = if (estado.excluindoConta) "Excluindo conta…" else "Excluir minha conta",

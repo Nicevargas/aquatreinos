@@ -85,7 +85,8 @@ fun MeusTreinosScreen(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 110.dp),
+        // Embaixo, só um respiro: a barra de navegação já desconta a própria altura.
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -111,9 +112,10 @@ fun MeusTreinosScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = AquaPrimary),
                     modifier = Modifier.testTag("botao_novo_treino")
                 ) {
+                    // "+ Novo" curto: com "Novo treino", o título "Meus treinos" quebrava em duas linhas.
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Novo treino", fontWeight = FontWeight.Bold)
+                    Text("Novo", fontWeight = FontWeight.Bold, softWrap = false)
                 }
             }
         }
@@ -219,7 +221,7 @@ private fun CartaoMeuTreino(
                     text = "${fase.title}: ${fase.summary}",
                     fontSize = 12.sp,
                     color = AquaTextSecondary,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp)
                 )

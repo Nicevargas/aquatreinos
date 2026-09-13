@@ -398,7 +398,8 @@ fun WorkoutsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(100.dp))
+            // A barra de baixo já desconta a própria altura (innerPadding do Scaffold).
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

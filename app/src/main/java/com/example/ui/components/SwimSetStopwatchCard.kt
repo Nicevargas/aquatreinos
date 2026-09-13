@@ -19,7 +19,10 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -82,6 +85,7 @@ import com.example.ui.theme.AquaTextPrimary
 import com.example.ui.theme.AquaTextSecondary
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SwimSetStopwatchCard(
     stopwatchState: SwimSetStopwatchState,
@@ -168,7 +172,13 @@ fun SwimSetStopwatchCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    // weight: o título quebra em palavras e o selo de status fica inteiro à direita.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
@@ -248,6 +258,7 @@ fun SwimSetStopwatchCard(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = statusText,
+                            softWrap = false,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = statusColor,
@@ -258,11 +269,11 @@ fun SwimSetStopwatchCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Series Navigator and Mode Selector Row
-                Row(
+                // Series Navigator and Mode Selector: se não couberem lado a lado, o seletor desce
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Current Series Badge with step arrows
                     Row(
@@ -289,6 +300,7 @@ fun SwimSetStopwatchCard(
 
                         Text(
                             text = "Série ${stopwatchState.currentSetNumber} / ${stopwatchState.totalSets}",
+                            softWrap = false,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = AquaPrimary,
@@ -330,6 +342,7 @@ fun SwimSetStopwatchCard(
                         ) {
                             Text(
                                 text = "Nado",
+                                softWrap = false,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSerie) Color.White else AquaTextSecondary
@@ -346,6 +359,7 @@ fun SwimSetStopwatchCard(
                         ) {
                             Text(
                                 text = "Descanso",
+                                softWrap = false,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (!isSerie) Color.White else AquaTextSecondary
@@ -378,7 +392,8 @@ fun SwimSetStopwatchCard(
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = AquaTextSecondary
+                            color = AquaTextSecondary,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -536,7 +551,9 @@ fun SwimSetStopwatchCard(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = if (stopwatchState.isRunning) "Pausar" else "Iniciar Série",
+                                    // Rótulos curtos: "Iniciar Série" e "Salvar Série" quebravam e eram cortados no botão.
+                                    text = if (stopwatchState.isRunning) "Pausar" else "Iniciar",
+                                    softWrap = false,
                                     color = Color.White,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
@@ -572,7 +589,8 @@ fun SwimSetStopwatchCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Salvar Série",
+                                text = "Salvar",
+                                softWrap = false,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AquaPrimary
@@ -651,7 +669,7 @@ private fun CompletedLapRow(lap: CompletedSetRecord) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -703,6 +721,7 @@ private fun CompletedLapRow(lap: CompletedSetRecord) {
 
             Text(
                 text = lap.timeFormatted,
+                softWrap = false,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 color = AquaTextPrimary,

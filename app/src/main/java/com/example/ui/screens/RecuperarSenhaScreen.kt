@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -94,8 +95,11 @@ fun RecuperarSenhaScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
+        // offset: a seta alinha com a margem do título, descontando a folga interna do IconButton.
         Row(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .offset(x = (-12).dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onVoltar, enabled = !estado.enviando, modifier = Modifier.testTag("recuperar_voltar")) {
@@ -158,7 +162,13 @@ fun RecuperarSenhaScreen(
                 color = AquaTextSecondary,
                 modifier = Modifier.padding(top = 6.dp)
             )
-            TextButton(onClick = onTrocarEmail, enabled = !estado.enviando, modifier = Modifier.testTag("recuperar_trocar_email")) {
+            TextButton(
+                onClick = onTrocarEmail,
+                enabled = !estado.enviando,
+                modifier = Modifier
+                    .offset(x = (-12).dp)
+                    .testTag("recuperar_trocar_email")
+            ) {
                 Text("Usar outro e-mail")
             }
 

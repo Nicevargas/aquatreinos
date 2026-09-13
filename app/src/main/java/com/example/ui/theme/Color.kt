@@ -16,6 +16,8 @@ val AquaSurface = Color(0xFFFFFFFF)
 val AquaSurfaceContainer = Color(0xFFEDF2FC)
 val AquaSurfaceContainerLow = Color(0xFFF4F8FC)
 val AquaBorder = Color(0xFFE2EBF5)
+// Contorno de campos de texto e botões com borda: AquaBorder é claro demais para marcar onde se digita.
+val AquaOutline = Color(0xFF8C97A8)
 
 val AquaTextPrimary = Color(0xFF111C2D)
 val AquaTextSecondary = Color(0xFF536071)

@@ -15,6 +15,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,10 +58,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.CompletedSetRecord
@@ -233,6 +237,7 @@ fun SwimSetHistoryChartCard(
                         ) {
                             Text(
                                 text = "Linha",
+                                softWrap = false,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (chartType == SwimChartType.LINE_PACE) Color.White else AquaTextSecondary
@@ -249,6 +254,7 @@ fun SwimSetHistoryChartCard(
                         ) {
                             Text(
                                 text = "Barras",
+                                softWrap = false,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (chartType == SwimChartType.BAR_TIME) Color.White else AquaTextSecondary
@@ -270,83 +276,39 @@ fun SwimSetHistoryChartCard(
                             .clip(RoundedCornerShape(14.dp))
                             .background(AquaSurfaceContainerLow)
                             .padding(vertical = 10.dp, horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        // Três colunas de largura igual: sem weight, "4 concluídas" quebrava letra por letra.
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        // Melhor Série
-                        Column(horizontalAlignment = Alignment.Start) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.EmojiEvents,
-                                    contentDescription = null,
-                                    tint = AquaYellowText,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "Melhor Série",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = AquaTextSecondary
-                                )
-                            }
-                            Text(
-                                text = bestLap?.let { "S${it.setNumber} • ${it.timeFormatted}" } ?: "--",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = AquaGreenText
-                            )
-                        }
+                        MetricaDoHistorico(
+                            icone = Icons.Default.EmojiEvents,
+                            corDoIcone = AquaYellowText,
+                            rotulo = "Melhor Série",
+                            valor = bestLap?.let { "S${it.setNumber} • ${it.timeFormatted}" } ?: "--",
+                            corDoValor = AquaGreenText,
+                            alinhamento = Alignment.Start,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        // Média Geral
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Speed,
-                                    contentDescription = null,
-                                    tint = AquaPrimary,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "Média Parcial",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = AquaTextSecondary
-                                )
-                            }
-                            Text(
-                                text = averageTimeFormatted,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = AquaPrimary
-                            )
-                        }
+                        MetricaDoHistorico(
+                            icone = Icons.Outlined.Speed,
+                            corDoIcone = AquaPrimary,
+                            rotulo = "Média Parcial",
+                            valor = averageTimeFormatted,
+                            corDoValor = AquaPrimary,
+                            alinhamento = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        // Total de Séries
-                        Column(horizontalAlignment = Alignment.End) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Timer,
-                                    contentDescription = null,
-                                    tint = AquaMagenta,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "Séries Feitas",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = AquaTextSecondary
-                                )
-                            }
-                            Text(
-                                text = "${chronologicalLaps.size} concluídas",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = AquaMagenta
-                            )
-                        }
+                        MetricaDoHistorico(
+                            icone = Icons.Outlined.Timer,
+                            corDoIcone = AquaMagenta,
+                            rotulo = "Séries Feitas",
+                            valor = "${chronologicalLaps.size} concluídas",
+                            corDoValor = AquaMagenta,
+                            alinhamento = Alignment.End,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -382,7 +344,7 @@ fun SwimSetHistoryChartCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -416,12 +378,14 @@ fun SwimSetHistoryChartCard(
                             )
                         }
 
-                        Text(
-                            text = "Toque em um ponto para detalhes",
-                            fontSize = 10.sp,
-                            color = AquaTextMuted
-                        )
                     }
+                    // Linha própria: espremida ao lado da legenda, virava uma coluna de palavras soltas.
+                    Text(
+                        text = "Toque em um ponto para ver os detalhes",
+                        fontSize = 10.sp,
+                        color = AquaTextMuted,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
 
                     // Interactive Tooltip Card for Selected Lap
                     if (selectedLap != null) {
@@ -435,6 +399,54 @@ fun SwimSetHistoryChartCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * Um número do resumo: ícone em cima, depois rótulo e valor. Ícone ao lado do rótulo
+ * ficava perdido entre as duas linhas quando o rótulo quebrava.
+ * lineHeight explícito: o padrão do tema (24sp) abria um vão entre as linhas desses textos pequenos.
+ */
+@Composable
+private fun MetricaDoHistorico(
+    icone: ImageVector,
+    corDoIcone: Color,
+    rotulo: String,
+    valor: String,
+    corDoValor: Color,
+    alinhamento: Alignment.Horizontal,
+    modifier: Modifier = Modifier
+) {
+    val alinhamentoDoTexto = when (alinhamento) {
+        Alignment.Start -> TextAlign.Start
+        Alignment.End -> TextAlign.End
+        else -> TextAlign.Center
+    }
+    Column(modifier = modifier, horizontalAlignment = alinhamento) {
+        Icon(
+            imageVector = icone,
+            contentDescription = null,
+            tint = corDoIcone,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = rotulo,
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AquaTextSecondary,
+            textAlign = alinhamentoDoTexto
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = valor,
+            fontSize = 12.sp,
+            lineHeight = 14.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = corDoValor,
+            textAlign = alinhamentoDoTexto
+        )
     }
 }
 
@@ -468,7 +480,7 @@ private fun EmptyChartState() {
             color = AquaTextPrimary
         )
         Text(
-            text = "Inicie o cronômetro e toque em 'Salvar Série' para ver seu gráfico de ritmo!",
+            text = "Inicie o cronômetro e toque em 'Salvar' para ver seu gráfico de ritmo!",
             fontSize = 11.sp,
             color = AquaTextSecondary,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
@@ -477,6 +489,7 @@ private fun EmptyChartState() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SelectedLapDetailCard(
     lap: CompletedSetRecord,
@@ -496,66 +509,64 @@ private fun SelectedLapDetailCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(if (isBest) AquaGreen else AquaPrimary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "S${lap.setNumber}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Série ${lap.setNumber}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AquaTextPrimary
-                        )
-                        if (isBest) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "MELHOR VOLTA",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = AquaGreenText,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.White)
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
-                    Text(
-                        text = "Pace: ${lap.pacePer100m} • Split: ${lap.splitDifference}",
-                        fontSize = 11.sp,
-                        color = AquaTextSecondary
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (isBest) AquaGreen else AquaPrimary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "S${lap.setNumber}",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    softWrap = false
+                )
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = lap.timeFormatted,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Black,
-                    color = if (isBest) AquaGreenText else AquaPrimary,
-                    fontFamily = FontFamily.Monospace
-                )
+            Spacer(modifier = Modifier.width(10.dp))
 
+            // Nome, ritmo e comparação empilhados à esquerda; o tempo fica inteiro à direita.
+            // Lado a lado, "1.2s melhor que a média" espremia o tempo até ele quebrar dígito por dígito.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                // O selo desce para baixo do nome quando não cabe ao lado.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "Série ${lap.setNumber}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AquaTextPrimary,
+                        softWrap = false
+                    )
+                    if (isBest) {
+                        Text(
+                            text = "MELHOR VOLTA",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = AquaGreenText,
+                            softWrap = false,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.White)
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "Pace: ${lap.pacePer100m} • Split: ${lap.splitDifference}",
+                    fontSize = 11.sp,
+                    color = AquaTextSecondary
+                )
                 if (lap.timeMillis > 0 && averageMillis > 0) {
                     val diffFromAvg = (lap.timeMillis - averageMillis).toDouble() / 1000.0
                     val diffText = if (diffFromAvg < 0) {
@@ -573,6 +584,15 @@ private fun SelectedLapDetailCard(
                     )
                 }
             }
+
+            Text(
+                text = lap.timeFormatted,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black,
+                color = if (isBest) AquaGreenText else AquaPrimary,
+                fontFamily = FontFamily.Monospace,
+                softWrap = false
+            )
         }
     }
 }

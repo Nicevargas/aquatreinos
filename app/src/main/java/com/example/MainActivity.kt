@@ -2,6 +2,7 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
@@ -49,7 +50,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Antes de qualquer chamada ao Supabase: é daqui que sai o token do usuário.
         AuthRepository.init(applicationContext)
-        enableEdgeToEdge()
+        // Ícones escuros na barra de status sempre: o app é claro mesmo com o celular no modo escuro.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         setContent {
             MyApplicationTheme {
                 AquagendaRaiz()

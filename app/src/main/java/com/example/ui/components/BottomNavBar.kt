@@ -153,6 +153,8 @@ private fun NavBarItem(
             fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = if (isSelected) AquaPrimary else AquaTextSecondary,
+            maxLines = 1,
+            softWrap = false,
             modifier = Modifier.padding(top = 2.dp)
         )
     }

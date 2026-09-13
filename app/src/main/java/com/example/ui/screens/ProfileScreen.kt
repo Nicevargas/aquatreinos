@@ -7,7 +7,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -66,6 +74,7 @@ import com.example.ui.theme.AquaTextSecondary
 import com.example.ui.theme.AquaYellow
 import com.example.ui.theme.AquaYellowBg
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileScreen(
     onDownloadWorkoutClick: () -> Unit,
@@ -173,27 +182,18 @@ fun ProfileScreen(
                     color = AquaTextPrimary
                 )
 
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Você atingiu ",
-                        fontSize = 13.sp,
-                        color = AquaTextSecondary
-                    )
-                    Text(
-                        text = "83%",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AquaPrimary
-                    )
-                    Text(
-                        text = " da sua meta diária.",
-                        fontSize = 13.sp,
-                        color = AquaTextSecondary
-                    )
-                }
+                // Um texto só: em três pedaços, cada pedaço quebrava a linha separado.
+                Text(
+                    text = buildAnnotatedString {
+                        append("Você atingiu ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = AquaPrimary)) { append("83%") }
+                        append(" da sua meta diária.")
+                    },
+                    fontSize = 13.sp,
+                    color = AquaTextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
 
@@ -202,7 +202,9 @@ fun ProfileScreen(
         // Bento Grid Metrics (4 cards)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Total Duration
@@ -213,7 +215,9 @@ fun ProfileScreen(
                     icon = Icons.Outlined.Timer,
                     iconTint = AquaPrimary,
                     iconBg = AquaBlueBg,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
 
                 // Avg Heart Rate
@@ -224,12 +228,16 @@ fun ProfileScreen(
                     icon = Icons.Outlined.Favorite,
                     iconTint = AquaMagenta,
                     iconBg = AquaPinkBg,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Avg Pace
@@ -240,13 +248,16 @@ fun ProfileScreen(
                     icon = Icons.Outlined.Speed,
                     iconTint = AquaYellow,
                     iconBg = AquaYellowBg,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
 
                 // Sync Data Card
                 Surface(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .clip(RoundedCornerShape(20.dp))
                         .clickable(onClick = onDownloadWorkoutClick)
                         .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = AquaPrimary.copy(alpha = 0.2f))
@@ -391,9 +402,11 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Legends
-                Row(
+                // Legendas descem para a linha de baixo quando não cabem juntas.
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     PhaseLegend(color = AquaGreen, label = "Warm-up")
                     PhaseLegend(color = AquaMagenta, label = "Main Set (Ongoing)", isBold = true)
@@ -412,6 +425,7 @@ fun ProfileScreen(
         ) {
             Text(
                 text = "Workout Details",
+                modifier = Modifier.weight(1f),
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = AquaTextPrimary
@@ -573,7 +587,8 @@ fun ProfileScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(100.dp))
+        // A barra de baixo já desconta a própria altura (innerPadding do Scaffold).
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -736,15 +751,20 @@ private fun WorkoutDetailItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // weight no título: a distância fica inteira à direita em vez de quebrar letra por letra.
                     Text(
                         text = title,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isActive) AquaMagenta else AquaTextPrimary
+                        color = if (isActive) AquaMagenta else AquaTextPrimary,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
                     )
 
                     Text(
                         text = distance,
+                        softWrap = false,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = when {
