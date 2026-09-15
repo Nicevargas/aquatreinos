@@ -84,7 +84,7 @@ private fun AquagendaUiState.comTreino(workout: Workout): AquagendaUiState {
 
 class AquagendaViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Os dois programas embarcados; o do Método NC vale a partir de 28/09/2026.
+    // Os dois programas embarcados; o do Método NC vale a partir de 15/09/2026.
     private val treinos = TreinosSugeridosRepository {
         listOf("treinos_ciclo.json", "programa_nc.json").map { nome ->
             application.assets.open(nome).bufferedReader().use { it.readText() }

@@ -22,7 +22,7 @@ data class CicloDto(
  *
  * Há dois, no Supabase (public.treinos_ciclo) e embarcados: o antigo
  * (assets/treinos_ciclo.json, scripts/carrossel_para_supabase.py) e o do Método NC,
- * que vale desde 28/09/2026 (assets/programa_nc.json, scripts/programa_nc_para_supabase.py).
+ * que vale desde 15/09/2026 (assets/programa_nc.json, scripts/programa_nc_para_supabase.py).
  * Esta classe e [escolher] fazem, sem rede, a mesma escolha de public.treinos_sugeridos.
  */
 class CicloDeTreinos(

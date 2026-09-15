@@ -67,7 +67,7 @@ class LayoutEstreitoScreenshotTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
-    private val dia = DataCivil.deIso("2026-10-14")
+    private val dia = DataCivil.deIso("2026-10-01")
     private val intermediario = ciclo.sugestao(dia, TrainingLevel.INTERMEDIARIO)!!
     private val roteiro = RoteiroDeTreino(intermediario)
 

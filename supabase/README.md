@@ -108,14 +108,15 @@ FROM treinos_sugeridos(CURRENT_DATE);
 
 Tempo estimado e calorias **não vêm do carrossel**. São estimativas do script: ritmo médio por nível mais os intervalos, e ~8 kcal/min.
 
-## Método Natação Criativa (desde 28/09/2026)
+## Método Natação Criativa (desde 15/09/2026)
 
-A partir de 28/09/2026 o carrossel segue o Método NC: o objetivo vem antes da metragem, e todo treino tem blocos, zona de intensidade, PSE e corretivos. O programa novo entra no banco como um **segundo ciclo** (`metodo-nc`), ao lado do antigo:
+A partir de 15/09/2026 o carrossel segue o Método NC: o objetivo vem antes da metragem, e todo treino tem blocos, zona de intensidade, PSE e corretivos. O programa novo entra no banco como um **segundo ciclo** (`metodo-nc`), ao lado do antigo:
 
 1. Rode `supabase/migrations/20260914000001_metodo_nc.sql`. Ela só acrescenta três colunas opcionais em `treinos_ciclo` (`objetivo`, `zona`, `ajuste`) e troca a função `treinos_sugeridos` para escolher o ciclo pela data. Nenhum dado é apagado ou alterado.
-2. Rode `supabase/seed/programa_nc.sql`. Ele grava os 84 treinos do ciclo `metodo-nc` e não toca no ciclo antigo.
+2. Rode `supabase/migrations/20260914000002_ancora_em_qualquer_dia.sql`. O método começa numa terça, e a tabela de ciclos só aceitava segunda; esta migração só remove essa restrição.
+3. Rode `supabase/seed/programa_nc.sql`. Ele grava os 84 treinos do ciclo `metodo-nc` e não toca no ciclo antigo.
 
-Até 27/09 a sugestão vem do ciclo antigo; de 28/09 em diante, do método. Enquanto o seed não roda, tudo continua como antes. O app embarca os dois ciclos (`treinos_ciclo.json` e `programa_nc.json`) e faz a mesma escolha sem rede.
+Até 14/09 a sugestão vinha do ciclo antigo; de 15/09 em diante, do método. A semana do método começa na terça: Ter Técnica, Qua Resistência, Qui Velocidade, Sex Estilos, Sáb Ritmo, Dom Força específica, Seg Recuperação. Enquanto o seed não roda, tudo continua como antes. O app embarca os dois ciclos (`treinos_ciclo.json` e `programa_nc.json`) e faz a mesma escolha sem rede.
 
 Quando o programa mudar, gere o seed de novo a partir de `../natacao-treinos/programa_nc.json` e repita o passo 2:
 

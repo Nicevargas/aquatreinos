@@ -30,7 +30,7 @@ data class WorkoutDto(
     @Json(name = "foco") val foco: String? = null,
     @Json(name = "motivational_tip") val motivationalTip: String? = null,
     @Json(name = "is_suggestion") val isSuggestion: Boolean? = false,
-    // Método NC (ciclo metodo-nc, desde 28/09/2026).
+    // Método NC (ciclo metodo-nc, desde 15/09/2026).
     @Json(name = "objetivo") val objetivo: String? = null,
     @Json(name = "zona") val zona: String? = null,
     @Json(name = "ajuste") val ajuste: String? = null

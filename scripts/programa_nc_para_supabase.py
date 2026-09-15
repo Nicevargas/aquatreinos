@@ -1,7 +1,7 @@
 """
 programa_nc_para_supabase.py - Leva o programa do Método Natação Criativa (o
 carrossel "Cada Dia 1 Treino" a partir de 28/09/2026) aos treinos sugeridos do
-Aquagenda.
+Aquagenda. Vale desde 15/09/2026 (âncora do programa).
 
 A fonte é o programa_nc.json do repositório natacao-treinos, o MESMO arquivo
 que gera o carrossel. Daqui saem, da mesma conversão:
@@ -12,7 +12,7 @@ que gera o carrossel. Daqui saem, da mesma conversão:
 
 O ciclo antigo (cada-dia-1-treino) continua no banco e no app. A função
 public.treinos_sugeridos escolhe o ciclo pela data: vale o de âncora mais
-recente que já começou. Até 27/09 sai o antigo; de 28/09 em diante, este.
+recente que já começou. Até 14/09 saiu o antigo; de 15/09 em diante, este.
 
 A auditoria do método (zonas, PSE, pausas, proporções) mora em
 natacao-treinos/scripts/programa_nc.py e roda antes de todo post; aqui só se
@@ -217,8 +217,8 @@ def converter(dados: dict, fonte: str) -> tuple:
     ancora = date.fromisoformat(dados["ancora"])
     lista = dados["treinos"]
     problemas = []
-    if ancora.weekday() != 0:
-        problemas.append(f"A âncora {ancora} não é segunda-feira.")
+    # A âncora pode ser qualquer dia (o método começa numa terça); o que prende
+    # cada foco a um dia da semana é o ciclo ser múltiplo de 7.
     if len(lista) % 7:
         problemas.append(f"O ciclo tem {len(lista)} dias; precisa ser múltiplo de 7.")
 
@@ -277,7 +277,8 @@ def montar_sql(ciclo: dict, linhas: list) -> str:
 -- {ciclo['fonte']}
 -- Não edite à mão: mude o programa_nc.json e rode o script de novo.
 --
--- Pré-requisito: supabase/migrations/20260914000001_metodo_nc.sql
+-- Pré-requisitos: supabase/migrations/20260914000001_metodo_nc.sql e
+-- 20260914000002_ancora_em_qualquer_dia.sql (a âncora do método é uma terça).
 -- Só grava o ciclo {ciclo['id']}: o ciclo antigo (cada-dia-1-treino) não é tocado.
 -- Pode rodar quantas vezes quiser: é upsert, e treinos que saíram DESTE ciclo são removidos.
 

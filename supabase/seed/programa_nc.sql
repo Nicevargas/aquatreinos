@@ -2,14 +2,15 @@
 -- https://raw.githubusercontent.com/Nicevargas/natacao-treinos/main/programa_nc.json
 -- Não edite à mão: mude o programa_nc.json e rode o script de novo.
 --
--- Pré-requisito: supabase/migrations/20260914000001_metodo_nc.sql
+-- Pré-requisitos: supabase/migrations/20260914000001_metodo_nc.sql e
+-- 20260914000002_ancora_em_qualquer_dia.sql (a âncora do método é uma terça).
 -- Só grava o ciclo metodo-nc: o ciclo antigo (cada-dia-1-treino) não é tocado.
 -- Pode rodar quantas vezes quiser: é upsert, e treinos que saíram DESTE ciclo são removidos.
 
 BEGIN;
 
 INSERT INTO public.ciclos_treino (id, nome, ancora, dias, handle, fonte)
-VALUES ('metodo-nc', 'Cada Dia 1 Treino · Método NC', '2026-09-28',
+VALUES ('metodo-nc', 'Cada Dia 1 Treino · Método NC', '2026-09-15',
         28, '@natacaocriativa', 'https://raw.githubusercontent.com/Nicevargas/natacao-treinos/main/programa_nc.json')
 ON CONFLICT (id) DO UPDATE SET
   nome = EXCLUDED.nome, ancora = EXCLUDED.ancora, dias = EXCLUDED.dias,

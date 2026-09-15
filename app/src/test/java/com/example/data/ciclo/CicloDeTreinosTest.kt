@@ -89,19 +89,19 @@ class CicloDeTreinosTest {
     private val metodoNc = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
 
     @Test
-    fun `o metodo NC vale a partir de 28-09 e o ciclo antigo ate 27-09`() {
+    fun `o metodo NC vale a partir de 15-09 e o ciclo antigo ate 14-09`() {
         val ciclos = listOf(ciclo, metodoNc)
-        assertSame(ciclo, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-27")))
-        assertSame(metodoNc, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-28")))
+        assertSame(ciclo, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-14")))
+        assertSame(metodoNc, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-15")))
         assertSame(metodoNc, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2027-01-01")))
         assertSame(ciclo, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2025-12-31"))) // antes de todos
 
-        // Mesmos dias que natacao-treinos/scripts/programa_nc.py publica.
-        assertEquals(1, metodoNc.diaDoCiclo(DataCivil.deIso("2026-09-28")))
-        assertEquals(17, metodoNc.diaDoCiclo(DataCivil.deIso("2026-10-14")))
-        assertEquals(12, metodoNc.diaDoCiclo(DataCivil.deIso("2027-01-01")))
+        // Mesmos dias que natacao-treinos/scripts/programa_nc.py publica (âncora numa terça).
+        assertEquals(1, metodoNc.diaDoCiclo(DataCivil.deIso("2026-09-15")))
+        assertEquals(17, metodoNc.diaDoCiclo(DataCivil.deIso("2026-10-01")))
+        assertEquals(25, metodoNc.diaDoCiclo(DataCivil.deIso("2027-01-01")))
 
-        val dia1 = metodoNc.sugestao(DataCivil.deIso("2026-09-28"), TrainingLevel.INTERMEDIARIO)!!
+        val dia1 = metodoNc.sugestao(DataCivil.deIso("2026-09-15"), TrainingLevel.INTERMEDIARIO)!!
         assertEquals("Técnica", dia1.focus)
         assertEquals("A1", dia1.zona)
         assertTrue(dia1.objetivo!!.startsWith("Técnica do crawl"))
@@ -112,7 +112,7 @@ class CicloDeTreinosTest {
         assertEquals("Rolamento com mãos na coxa", corretivo.corretivo?.nome)
         assertTrue(corretivo.details.any { "nado completo" in it })
 
-        assertEquals("AN", metodoNc.sugestao(DataCivil.deIso("2026-10-14"), TrainingLevel.AVANCADO)!!.zona)
+        assertEquals("AN", metodoNc.sugestao(DataCivil.deIso("2026-10-01"), TrainingLevel.AVANCADO)!!.zona)
     }
 
     @Test
