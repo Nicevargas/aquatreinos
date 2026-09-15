@@ -1,6 +1,7 @@
 package com.example.data.supabase
 
 import com.example.model.CompletedSetRecord
+import com.example.model.Corretivo
 import com.example.model.PhaseStatus
 import com.example.model.TrainingLevel
 import com.example.model.Workout
@@ -28,7 +29,11 @@ data class WorkoutDto(
     @Json(name = "bloco") val bloco: String? = null,
     @Json(name = "foco") val foco: String? = null,
     @Json(name = "motivational_tip") val motivationalTip: String? = null,
-    @Json(name = "is_suggestion") val isSuggestion: Boolean? = false
+    @Json(name = "is_suggestion") val isSuggestion: Boolean? = false,
+    // Método NC (ciclo metodo-nc, desde 28/09/2026).
+    @Json(name = "objetivo") val objetivo: String? = null,
+    @Json(name = "zona") val zona: String? = null,
+    @Json(name = "ajuste") val ajuste: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -54,7 +59,17 @@ data class WorkoutSetDto(
     @Json(name = "isDone") val isDone: Boolean? = false,
     @Json(name = "serie") val serie: String? = null,
     @Json(name = "details") val details: List<String>? = null,
-    @Json(name = "distanceMeters") val distanceMeters: Int? = null
+    @Json(name = "distanceMeters") val distanceMeters: Int? = null,
+    @Json(name = "zona") val zona: String? = null,
+    @Json(name = "pse") val pse: String? = null,
+    @Json(name = "corretivo") val corretivo: CorretivoDto? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class CorretivoDto(
+    @Json(name = "nome") val nome: String? = null,
+    @Json(name = "objetivo") val objetivo: String? = null,
+    @Json(name = "dica") val dica: String? = null
 )
 
 /**
@@ -157,7 +172,12 @@ fun WorkoutDto.toDomain(): Workout {
                     isCompleted = setDto.isDone ?: false,
                     header = setDto.serie ?: "${reps}m ${setDto.stroke.orEmpty()}".trim(),
                     details = setDto.details.orEmpty(),
-                    distanceMeters = setDto.distanceMeters ?: metrosDe(reps)
+                    distanceMeters = setDto.distanceMeters ?: metrosDe(reps),
+                    zona = setDto.zona?.takeIf { it.isNotBlank() },
+                    pse = setDto.pse?.takeIf { it.isNotBlank() },
+                    corretivo = setDto.corretivo?.takeIf { !it.nome.isNullOrBlank() }?.let {
+                        Corretivo(it.nome.orEmpty(), it.objetivo.orEmpty(), it.dica.orEmpty())
+                    }
                 )
             } ?: emptyList()
         )
@@ -176,7 +196,10 @@ fun WorkoutDto.toDomain(): Workout {
         workoutDate = workoutDate,
         isSuggestion = isSuggestion ?: false,
         focus = foco,
-        cycleDay = cicloDia
+        cycleDay = cicloDia,
+        objetivo = objetivo?.takeIf { it.isNotBlank() },
+        zona = zona?.takeIf { it.isNotBlank() },
+        ajuste = ajuste?.takeIf { it.isNotBlank() }
     )
     return motivationalTip?.let { workout.copy(motivationalTip = it) } ?: workout
 }

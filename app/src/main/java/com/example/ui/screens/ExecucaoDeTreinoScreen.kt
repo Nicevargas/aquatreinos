@@ -84,8 +84,13 @@ import com.example.data.execucao.ProgressoExecucao
 import com.example.data.execucao.RoteiroDeTreino
 import com.example.data.execucao.SituacaoDaFase
 import com.example.ui.compartilhar.CartaoDoTreino
+import com.example.data.treinos.MetodoNC
+import com.example.model.Corretivo
 import com.example.ui.components.AppTopBar
+import com.example.ui.components.EtiquetaDeZona
 import com.example.ui.components.MensagemDeTela
+import com.example.ui.theme.AquaYellowBg
+import com.example.ui.theme.AquaYellowText
 import com.example.ui.theme.AquaBackground
 import com.example.ui.theme.AquaBlueBg
 import com.example.ui.theme.AquaBorder
@@ -252,9 +257,14 @@ private fun TelaExecutando(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Método NC: o objetivo do dia; treinos antigos ficam com a dica do foco.
             FaixaDeDica(
-                titulo = roteiro.workout.focus?.let { "Foco de hoje: $it" } ?: "Dica do treino",
-                dica = roteiro.workout.motivationalTip
+                titulo = when {
+                    roteiro.workout.objetivo != null -> "Objetivo de hoje"
+                    roteiro.workout.focus != null -> "Foco de hoje: ${roteiro.workout.focus}"
+                    else -> "Dica do treino"
+                },
+                dica = roteiro.workout.objetivo ?: roteiro.workout.motivationalTip
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -385,16 +395,27 @@ private fun CartaoSerieAtual(passo: PassoDeTreino, progresso: ProgressoExecucao,
                 }
 
                 val etiquetas: List<Pair<ImageVector, String>> = listOfNotNull(
-                    passo.serie.intervalTarget.takeIf { it.isNotBlank() }?.let { Icons.Outlined.Timer to "Intervalo $it" },
+                    MetodoNC.intervaloLegivel(passo.serie.intervalTarget)?.let { Icons.Outlined.Timer to it },
                     passo.serie.equipmentName?.let { Icons.Outlined.FrontHand to it }
                 )
-                if (etiquetas.isNotEmpty()) {
-                    // Intervalo e material: se não couberem na mesma linha, o segundo desce.
+                val zona = passo.serie.zona
+                if (etiquetas.isNotEmpty() || zona != null) {
+                    // Zona, intervalo e material: se não couberem na mesma linha, descem.
                     FlowRow(
                         modifier = Modifier.padding(top = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        zona?.let {
+                            EtiquetaDeZona(
+                                sigla = it,
+                                texto = passo.serie.pse?.let { pse -> "$it · PSE $pse" } ?: it,
+                                tamanho = 13.sp,
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically)
+                                    .testTag("zona_da_serie")
+                            )
+                        }
                         etiquetas.forEach { (icone, texto) ->
                             Row(
                                 modifier = Modifier
@@ -410,6 +431,8 @@ private fun CartaoSerieAtual(passo: PassoDeTreino, progresso: ProgressoExecucao,
                         }
                     }
                 }
+
+                passo.serie.corretivo?.let { CaixaDoCorretivo(it) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -442,6 +465,44 @@ private fun CartaoSerieAtual(passo: PassoDeTreino, progresso: ProgressoExecucao,
                         modifier = Modifier.padding(top = 10.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+/** O corretivo da série: para que serve e a dica, legível entre uma repetição e outra. */
+@Composable
+private fun CaixaDoCorretivo(corretivo: Corretivo) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .testTag("corretivo_da_serie"),
+        shape = RoundedCornerShape(14.dp),
+        color = AquaYellowBg
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "CORRETIVO · ${corretivo.nome.uppercase()}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = AquaYellowText,
+                letterSpacing = 0.6.sp
+            )
+            Text(
+                text = "“${corretivo.dica}”",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = AquaTextPrimary,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            if (corretivo.objetivo.isNotBlank()) {
+                Text(
+                    text = "Para: ${corretivo.objetivo}. Depois, nado completo.",
+                    fontSize = 12.sp,
+                    color = AquaTextSecondary,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }

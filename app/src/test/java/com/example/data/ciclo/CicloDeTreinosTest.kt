@@ -3,6 +3,7 @@ package com.example.data.ciclo
 import com.example.model.TrainingLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -83,6 +84,52 @@ class CicloDeTreinosTest {
         assertEquals("30\"", repetida.intervalTarget)
         assertEquals(30, repetida.restSeconds)
         assertEquals(600, repetida.distanceMeters)
+    }
+
+    private val metodoNc = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
+
+    @Test
+    fun `o metodo NC vale a partir de 28-09 e o ciclo antigo ate 27-09`() {
+        val ciclos = listOf(ciclo, metodoNc)
+        assertSame(ciclo, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-27")))
+        assertSame(metodoNc, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2026-09-28")))
+        assertSame(metodoNc, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2027-01-01")))
+        assertSame(ciclo, CicloDeTreinos.escolher(ciclos, DataCivil.deIso("2025-12-31"))) // antes de todos
+
+        // Mesmos dias que natacao-treinos/scripts/programa_nc.py publica.
+        assertEquals(1, metodoNc.diaDoCiclo(DataCivil.deIso("2026-09-28")))
+        assertEquals(17, metodoNc.diaDoCiclo(DataCivil.deIso("2026-10-14")))
+        assertEquals(12, metodoNc.diaDoCiclo(DataCivil.deIso("2027-01-01")))
+
+        val dia1 = metodoNc.sugestao(DataCivil.deIso("2026-09-28"), TrainingLevel.INTERMEDIARIO)!!
+        assertEquals("Técnica", dia1.focus)
+        assertEquals("A1", dia1.zona)
+        assertTrue(dia1.objetivo!!.startsWith("Técnica do crawl"))
+        assertNotNull(dia1.ajuste)
+        assertEquals(listOf("Ativação", "Preparação", "Desenvolvimento", "Recuperação"), dia1.phases.map { it.title })
+        val corretivo = dia1.phases[1].sets[0]
+        assertEquals("A0", corretivo.zona)
+        assertEquals("Rolamento com mãos na coxa", corretivo.corretivo?.nome)
+        assertTrue(corretivo.details.any { "nado completo" in it })
+
+        assertEquals("AN", metodoNc.sugestao(DataCivil.deIso("2026-10-14"), TrainingLevel.AVANCADO)!!.zona)
+    }
+
+    @Test
+    fun `todo treino do metodo NC tem blocos NC, zona em cada serie e metragem que fecha`() {
+        val blocos = setOf("Ativação", "Preparação", "Desenvolvimento", "Consolidação", "Recuperação")
+        val zonas = setOf("A0", "A1", "A2", "A3", "AN", "AA")
+        for (i in 0 until metodoNc.dias) {
+            TrainingLevel.entries.forEach { level ->
+                val t = metodoNc.sugestao(metodoNc.ancoraEpochDay + i, level)!!
+                val rotulo = "dia ${i + 1} $level"
+                assertTrue(rotulo, t.phases.all { it.title in blocos })
+                assertTrue(rotulo, t.zona in zonas && t.objetivo != null)
+                assertTrue(rotulo, t.phases.flatMap { it.sets }.all { it.zona in zonas })
+                assertEquals(rotulo, t.totalDistanceMeters, t.phases.sumOf { it.distanceMeters })
+                assertEquals(rotulo, 100, t.phases.sumOf { it.percentage })
+            }
+        }
     }
 
     @Test

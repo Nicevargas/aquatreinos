@@ -66,8 +66,8 @@ class LayoutEstreitoScreenshotTest {
 
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/treinos_ciclo.json").readText())
-    private val dia = DataCivil.deIso("2026-09-13")
+    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
+    private val dia = DataCivil.deIso("2026-10-14")
     private val intermediario = ciclo.sugestao(dia, TrainingLevel.INTERMEDIARIO)!!
     private val roteiro = RoteiroDeTreino(intermediario)
 
@@ -171,9 +171,9 @@ class LayoutEstreitoScreenshotTest {
     @Test
     fun execucao_publicar() = execucao(
         ExecucaoUiState(
-            ativo = true, roteiro = roteiro, progresso = ProgressoExecucao(5, 0), etapa = EtapaExecucao.PUBLICAR,
+            ativo = true, roteiro = roteiro, progresso = ProgressoExecucao(roteiro.passos.size, 0), etapa = EtapaExecucao.PUBLICAR,
             resumo = RegistroDoTreino.resumo(
-                RegistroDoTreino.montar(roteiro, ProgressoExecucao(5, 0), 2_520, 6, 4, "", "2026-09-13"),
+                RegistroDoTreino.montar(roteiro, ProgressoExecucao(roteiro.passos.size, 0), 2_520, 6, 4, "", "2026-09-13"),
                 roteiro
             )
         ),

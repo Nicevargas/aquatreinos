@@ -49,7 +49,8 @@ object TextosDoTreino {
         }
     }
 
-    fun nivel(n: TrainingLevel): String = listOf(n.label, n.carouselLabel).distinct().joinToString(" · ")
+    // Só o nome do nível: a descrição ("Ainda construindo o nado contínuo") é longa para legenda e cartão.
+    fun nivel(n: TrainingLevel): String = n.label
 
     fun legenda(r: ResumoDoTreino): String {
         val blocos = mutableListOf<String>()

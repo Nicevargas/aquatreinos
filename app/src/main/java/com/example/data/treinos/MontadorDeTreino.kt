@@ -1,9 +1,11 @@
 package com.example.data.treinos
 
 import com.example.data.ciclo.DataCivil
+import com.example.data.supabase.CorretivoDto
 import com.example.data.supabase.WorkoutPhaseDto
 import com.example.data.supabase.WorkoutSetDto
 import com.example.data.supabase.WorkoutWriteDto
+import com.example.model.Corretivo
 import com.example.model.TrainingLevel
 import com.example.model.Workout
 import java.util.Locale
@@ -12,8 +14,12 @@ import kotlin.math.round
 /** Uma série como a pessoa digita, no formato do carrossel. */
 data class SerieDigitada(
     val serie: String = "", // "8x50m Crawl"
-    val detalhes: String = "", // "25m forte; 25m leve"
-    val intervalo: String = "" // 20"
+    val detalhes: String = "", // "25m mão fechada; 25m nado completo"
+    val intervalo: String = "", // #20" (descansa 20 s) ou @1'30" (sai a cada 1'30")
+    val zona: String = "", // A0, A1, A2, A3, AN ou AA; opcional
+    // Vêm da sugestão do carrossel e são preservados ao salvar; o formulário não os edita.
+    val pse: String = "",
+    val corretivo: Corretivo? = null
 )
 
 data class TreinoDigitado(
@@ -31,18 +37,19 @@ sealed interface Montagem {
 /**
  * Transforma o formulário de "Meus treinos" em linha de public.workouts.
  *
- * Mesmas regras de scripts/carrossel_para_supabase.py, para um treino do
- * usuário e uma sugestão do carrossel saírem idênticos: a metragem vem do
- * cabeçalho ("8x50m" = 400m), os detalhes não somam, material é detectado no
- * texto, e tempo/calorias são a mesma estimativa.
+ * Mesmas regras de scripts/programa_nc_para_supabase.py, para um treino do
+ * usuário e uma sugestão do carrossel saírem com a mesma estrutura: os blocos do
+ * Método NC, a metragem vinda do cabeçalho ("8x50m" = 400m), os detalhes que não
+ * somam, o material detectado no texto, a zona e o intervalo # ou @.
  */
 object MontadorDeTreino {
 
-    val FASES = listOf("Aquecimento", "Principal", "Final")
+    // Blocos do Método Natação Criativa, na ordem da aula. Vazios não são salvos.
+    val FASES = listOf("Ativação", "Preparação", "Desenvolvimento", "Consolidação", "Recuperação")
 
     private val REPS = Regex("""^(\d+)\s*x\s*(\d+)\s*m\b\s*""", RegexOption.IGNORE_CASE)
     private val SIMPLES = Regex("""^(\d+)\s*m\b\s*""", RegexOption.IGNORE_CASE)
-    private val INTERVALO = Regex("""^(?:(\d+)\s*')?\s*(?:(\d+)\s*(?:"|''|s|seg)?)?$""", RegexOption.IGNORE_CASE)
+    private val INTERVALO = Regex("""^([#@])?\s*(?:(\d+)\s*')?\s*(?:(\d+)\s*(?:"|''|s|seg)?)?$""", RegexOption.IGNORE_CASE)
 
     private val MATERIAIS = listOf(
         "Palmar" to Regex("palmar", RegexOption.IGNORE_CASE),
@@ -72,19 +79,29 @@ object MontadorDeTreino {
         return null
     }
 
-    /** `20"`, `20`, `20s` ou `1'30"` -> texto normalizado e segundos. Vazio = sem intervalo. */
+    /**
+     * `#20"` (intervalo aberto: descansa 20 s), `@1'30"` (fechado: sai a cada 1'30"),
+     * ou só o tempo, como nos treinos antigos (`20"`, `20`, `20s`, `2'`).
+     * Devolve o texto normalizado e os segundos. Vazio = sem intervalo.
+     */
     fun lerIntervalo(texto: String): Pair<String, Int>? {
         val t = texto.trim()
         if (t.isEmpty()) return "" to 0
         val m = INTERVALO.matchEntire(t) ?: return null
-        val minutos = m.groupValues[1]
-        val segundos = m.groupValues[2]
+        val prefixo = m.groupValues[1]
+        val minutos = m.groupValues[2]
+        val segundos = m.groupValues[3]
         if (minutos.isEmpty() && segundos.isEmpty()) return null
         val min = minutos.toIntOrNull() ?: 0
         val seg = segundos.toIntOrNull() ?: 0
         if (min > 0 && seg >= 60) return null
-        val normalizado = if (min > 0) String.format(Locale.US, "%d'%02d\"", min, seg) else "$seg\""
-        return normalizado to (min * 60 + seg)
+        // Minuto cheio sai como no carrossel: #1', não #1'00".
+        val tempo = when {
+            min > 0 && seg == 0 -> "$min'"
+            min > 0 -> String.format(Locale.US, "%d'%02d\"", min, seg)
+            else -> "$seg\""
+        }
+        return prefixo + tempo to (min * 60 + seg)
     }
 
     fun lerDetalhes(texto: String): List<String> =
@@ -109,6 +126,7 @@ object MontadorDeTreino {
                 val rotulo = "$nome, série ${i + 1}"
                 val cab = lerCabecalho(s.serie)
                 val intervalo = lerIntervalo(s.intervalo)
+                val zona = s.zona.trim().uppercase()
                 when {
                     cab == null -> {
                         erros += "$rotulo: comece pela distância, como \"8x50m Crawl\" ou \"400m Crawl\"."
@@ -119,7 +137,11 @@ object MontadorDeTreino {
                         null
                     }
                     intervalo == null -> {
-                        erros += "$rotulo: intervalo inválido; use 20\" ou 1'30\"."
+                        erros += "$rotulo: intervalo inválido; use #20\" (descanso) ou @1'30\" (saída a cada)."
+                        null
+                    }
+                    zona.isNotEmpty() && MetodoNC.zona(zona) == null -> {
+                        erros += "$rotulo: zona desconhecida; use A0, A1, A2, A3, AN ou AA."
                         null
                     }
                     else -> {
@@ -127,9 +149,14 @@ object MontadorDeTreino {
                         val metros = cab.repeticoes * cab.metros
                         val texto = (listOf(s.serie.trim()) + detalhes).joinToString(" ")
                         val materiais = MATERIAIS.filter { it.second.containsMatchIn(texto) }.map { it.first }
+                        // Intervalo fechado (@): a pausa depende de quem nada, e o tempo é a saída.
+                        val fechado = intervalo.first.startsWith("@")
 
-                        segundos += metros * ritmo / 100.0
-                        segundos += cab.repeticoes * intervalo.second
+                        segundos += if (fechado) {
+                            cab.repeticoes * intervalo.second.toDouble()
+                        } else {
+                            metros * ritmo / 100.0 + cab.repeticoes * intervalo.second
+                        }
 
                         WorkoutSetDto(
                             id = "${nome.lowercase()}_s${i + 1}",
@@ -138,12 +165,15 @@ object MontadorDeTreino {
                             stroke = cab.nado.ifEmpty { detalhes.joinToString(" · ") }.ifEmpty { "Nado livre" },
                             interval = intervalo.first.ifEmpty { null },
                             intensity = null,
-                            restSeconds = intervalo.second,
+                            restSeconds = if (fechado) 0 else intervalo.second,
                             equipment = materiais.joinToString(" + ").ifEmpty { null },
                             isDone = false,
                             serie = s.serie.trim(),
                             details = detalhes,
-                            distanceMeters = metros
+                            distanceMeters = metros,
+                            zona = zona.ifEmpty { null },
+                            pse = s.pse.trim().ifEmpty { null },
+                            corretivo = s.corretivo?.let { CorretivoDto(it.nome, it.objetivo, it.dica) }
                         )
                     }
                 }
@@ -214,17 +244,22 @@ object MontadorDeTreino {
                         SerieDigitada(
                             serie = s.header.ifBlank { "${s.repsDistance}m ${s.description}".trim() },
                             detalhes = s.details.joinToString("; "),
-                            intervalo = s.intervalTarget
+                            intervalo = s.intervalTarget,
+                            zona = s.zona.orEmpty(),
+                            pse = s.pse.orEmpty(),
+                            corretivo = s.corretivo
                         )
                     }
             }
         )
     }
 
-    // Treinos antigos usam "Preparatória" e "Soltura".
+    // Treinos salvos antes do Método NC usam Aquecimento, Preparatória, Principal, Final e Soltura.
     private fun faseDoTitulo(titulo: String): String = when (titulo.trim().lowercase()) {
-        "aquecimento", "preparatória", "preparatoria" -> "Aquecimento"
-        "principal" -> "Principal"
-        else -> "Final"
+        "ativação", "ativacao", "aquecimento" -> "Ativação"
+        "preparação", "preparacao", "preparatória", "preparatoria" -> "Preparação"
+        "desenvolvimento", "principal" -> "Desenvolvimento"
+        "consolidação", "consolidacao" -> "Consolidação"
+        else -> "Recuperação"
     }
 }

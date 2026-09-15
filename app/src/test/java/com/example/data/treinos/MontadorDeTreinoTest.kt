@@ -16,11 +16,11 @@ import java.io.File
 
 class MontadorDeTreinoTest {
 
-    private val json = File("src/main/assets/treinos_ciclo.json").readText()
-    private val ciclo = CicloDeTreinos.deJson(json)
+    private val json = File("src/main/assets/programa_nc.json").readText()
+    private val cicloAntigo = CicloDeTreinos.deJson(File("src/main/assets/treinos_ciclo.json").readText())
 
     @Test
-    fun `remontar cada sugestao do carrossel da o mesmo treino que o script gerou`() {
+    fun `remontar cada sugestao do metodo NC da a mesma estrutura que o script gerou`() {
         // Leitura crua do asset, para comparar com o que o Python gravou no banco.
         val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
         val tipo = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
@@ -33,15 +33,14 @@ class MontadorDeTreinoTest {
         for (dto in dtos) {
             val rotulo = dto.id!!
             val original = dto.toDomain()
-            val digitado = MontadorDeTreino.paraDigitacao(original, DataCivil.deIso("2026-09-13"))
+            val digitado = MontadorDeTreino.paraDigitacao(original, DataCivil.deIso("2026-09-28"))
             val montado = (MontadorDeTreino.montar(digitado) as? Montagem.Pronto)?.treino
                 ?: error("$rotulo não montou: ${(MontadorDeTreino.montar(digitado) as Montagem.ComErros).erros}")
 
+            // A duração do método usa outra estimativa (por zona); o resto tem de bater.
             assertEquals(rotulo, dto.totalDistanceMeters, montado.totalDistanceMeters)
-            assertEquals(rotulo, dto.estimatedMinutes, montado.estimatedMinutes)
-            assertEquals(rotulo, dto.calories, montado.calories)
             assertEquals(rotulo, dto.level, montado.level)
-            assertEquals(rotulo, "2026-09-13", montado.workoutDate)
+            assertEquals(rotulo, "2026-09-28", montado.workoutDate)
 
             val esperadas = dto.phases!!
             assertEquals(rotulo, esperadas.map { it.title }, montado.phases.map { it.title })
@@ -59,9 +58,26 @@ class MontadorDeTreinoTest {
                     assertEquals(rotulo, se.restSeconds, sm.restSeconds)
                     assertEquals(rotulo, se.equipment, sm.equipment)
                     assertEquals(rotulo, se.distanceMeters, sm.distanceMeters)
+                    assertEquals(rotulo, se.zona, sm.zona)
+                    assertEquals(rotulo, se.pse, sm.pse)
+                    assertEquals(rotulo, se.corretivo, sm.corretivo)
                 }
             }
         }
+    }
+
+    @Test
+    fun `treino salvo antes do metodo abre nos blocos equivalentes`() {
+        val antigo = cicloAntigo.sugestao(DataCivil.deIso("2026-09-13"), TrainingLevel.INTERMEDIARIO)!!
+        assertEquals(listOf("Aquecimento", "Principal", "Final"), antigo.phases.map { it.title })
+
+        val digitado = MontadorDeTreino.paraDigitacao(antigo)
+        assertEquals(1, digitado.fases.getValue("Ativação").size)
+        assertEquals(2, digitado.fases.getValue("Desenvolvimento").size)
+        assertEquals(2, digitado.fases.getValue("Recuperação").size)
+        val montado = (MontadorDeTreino.montar(digitado) as Montagem.Pronto).treino
+        assertEquals(listOf("Ativação", "Desenvolvimento", "Recuperação"), montado.phases.map { it.title })
+        assertEquals(antigo.totalDistanceMeters, montado.totalDistanceMeters)
     }
 
     @Test
@@ -75,15 +91,19 @@ class MontadorDeTreinoTest {
     }
 
     @Test
-    fun `le intervalo em segundos ou minutos`() {
+    fun `le intervalo aberto, fechado ou so o tempo`() {
         assertEquals("" to 0, MontadorDeTreino.lerIntervalo(""))
+        assertEquals("#20\"" to 20, MontadorDeTreino.lerIntervalo("#20\""))
+        assertEquals("@1'45\"" to 105, MontadorDeTreino.lerIntervalo("@1'45\""))
+        assertEquals("#1'" to 60, MontadorDeTreino.lerIntervalo("#1'"))
         assertEquals("20\"" to 20, MontadorDeTreino.lerIntervalo("20\""))
         assertEquals("20\"" to 20, MontadorDeTreino.lerIntervalo("20"))
         assertEquals("45\"" to 45, MontadorDeTreino.lerIntervalo("45s"))
         assertEquals("1'30\"" to 90, MontadorDeTreino.lerIntervalo("1'30\""))
-        assertEquals("2'00\"" to 120, MontadorDeTreino.lerIntervalo("2'"))
+        assertEquals("2'" to 120, MontadorDeTreino.lerIntervalo("2'"))
         assertNull(MontadorDeTreino.lerIntervalo("vinte"))
         assertNull(MontadorDeTreino.lerIntervalo("1'75\""))
+        assertNull(MontadorDeTreino.lerIntervalo("#"))
     }
 
     @Test
@@ -93,50 +113,61 @@ class MontadorDeTreinoTest {
             data = "31/02/2026",
             level = TrainingLevel.INICIANTE,
             fases = mapOf(
-                "Aquecimento" to listOf(SerieDigitada(serie = "Crawl leve")),
-                "Principal" to listOf(SerieDigitada(serie = "8x50m Crawl", intervalo = "rápido")),
-                "Final" to listOf(SerieDigitada()) // linha vazia é ignorada
+                "Ativação" to listOf(SerieDigitada(serie = "Crawl leve")),
+                "Desenvolvimento" to listOf(
+                    SerieDigitada(serie = "8x50m Crawl", intervalo = "rápido"),
+                    SerieDigitada(serie = "4x100m Crawl", intervalo = "#20\"", zona = "Z3")
+                ),
+                "Recuperação" to listOf(SerieDigitada()) // linha vazia é ignorada
             )
         )
         val erros = (MontadorDeTreino.montar(digitado) as Montagem.ComErros).erros
-        assertEquals(4, erros.size)
+        assertEquals(5, erros.size)
         assertTrue(erros[0].contains("nome"))
         assertTrue(erros[1].contains("Data inválida"))
-        assertTrue(erros[2].startsWith("Aquecimento, série 1"))
-        assertTrue(erros[3].startsWith("Principal, série 1") && erros[3].contains("intervalo"))
+        assertTrue(erros[2].startsWith("Ativação, série 1"))
+        assertTrue(erros[3].startsWith("Desenvolvimento, série 1") && erros[3].contains("intervalo"))
+        assertTrue(erros[4].startsWith("Desenvolvimento, série 2") && erros[4].contains("zona"))
 
         val vazio = MontadorDeTreino.montar(TreinoDigitado(titulo = "Nada", data = "13/09/2026"))
         assertEquals(listOf("Adicione pelo menos uma série."), (vazio as Montagem.ComErros).erros)
     }
 
     @Test
-    fun `monta treino digitado com fase vazia e material`() {
+    fun `monta treino digitado com bloco vazio, zona, saida fechada e material`() {
         val digitado = TreinoDigitado(
             titulo = "Treino de sábado",
             data = "19/09/2026",
             level = TrainingLevel.AVANCADO,
             fases = mapOf(
-                "Aquecimento" to emptyList(),
-                "Principal" to listOf(
-                    SerieDigitada("10x100m Crawl c/ Palmar", "50m forte; 50m leve", "15"),
-                    SerieDigitada("400m Pernada", "com prancha", "")
+                "Ativação" to emptyList(),
+                "Desenvolvimento" to listOf(
+                    SerieDigitada("10x100m Crawl c/ Palmar", "50m ritmo; 50m solto", "15", zona = "a2"),
+                    SerieDigitada("400m Pernada", "com prancha", ""),
+                    SerieDigitada("4x200m Crawl", "", "@3'30\"", zona = "A2")
                 ),
-                "Final" to listOf(SerieDigitada("200m Costas solto"))
+                "Recuperação" to listOf(SerieDigitada("200m Costas solto", zona = "A0"))
             )
         )
         val treino = (MontadorDeTreino.montar(digitado) as Montagem.Pronto).treino
         assertEquals("2026-09-19", treino.workoutDate)
-        assertEquals(1600, treino.totalDistanceMeters)
-        assertEquals(listOf("Principal", "Final"), treino.phases.map { it.title })
-        assertEquals(listOf(88, 12), treino.phases.map { it.percentage })
+        assertEquals("Aperfeiçoamento", treino.subtitle)
+        assertEquals(2400, treino.totalDistanceMeters)
+        assertEquals(listOf("Desenvolvimento", "Recuperação"), treino.phases.map { it.title })
+        assertEquals(listOf(92, 8), treino.phases.map { it.percentage })
 
-        val tiros = treino.phases[0].sets!![0]
-        assertEquals("15\"", tiros.interval)
-        assertEquals(15, tiros.restSeconds)
-        assertEquals(listOf("50m forte", "50m leve"), tiros.details)
-        assertEquals("Palmar", tiros.equipment)
-        assertEquals("Prancha", treino.phases[0].sets!![1].equipment) // detectado nos detalhes
+        val series = treino.phases[0].sets!!
+        assertEquals("15\"", series[0].interval)
+        assertEquals(15, series[0].restSeconds)
+        assertEquals("A2", series[0].zona)
+        assertEquals(listOf("50m ritmo", "50m solto"), series[0].details)
+        assertEquals("Palmar", series[0].equipment)
+        assertEquals("Prancha", series[1].equipment) // detectado nos detalhes
+        assertNull(series[1].zona)
+        assertEquals("@3'30\"", series[2].interval)
+        assertEquals(0, series[2].restSeconds) // saída fechada: a pausa depende de quem nada
         assertNull(treino.phases[1].sets!![0].interval)
+        assertEquals("A0", treino.phases[1].sets!![0].zona)
     }
 
     @Test
@@ -148,7 +179,7 @@ class MontadorDeTreinoTest {
         assertNull(DataCivil.lerDataBr("2026-09-13"))
         assertNull(DataCivil.lerDataBr("13/9/26"))
         // Sugestão remontada fica igual ao ciclo, mesmo em outra data.
-        val sugestao = ciclo.sugestao(DataCivil.deIso("2026-09-13"), TrainingLevel.INTERMEDIARIO)!!
+        val sugestao = cicloAntigo.sugestao(DataCivil.deIso("2026-09-13"), TrainingLevel.INTERMEDIARIO)!!
         assertEquals("13/09/2026", MontadorDeTreino.paraDigitacao(sugestao).data)
     }
 }

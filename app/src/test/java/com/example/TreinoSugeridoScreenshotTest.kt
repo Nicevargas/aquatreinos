@@ -31,8 +31,9 @@ class TreinoSugeridoScreenshotTest {
 
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val dia = DataCivil.deIso("2026-09-13")
-    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/treinos_ciclo.json").readText())
+    // Dia 17 do Método NC: AA na preparação, A3 no desenvolvimento e corretivo.
+    private val dia = DataCivil.deIso("2026-10-14")
+    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
 
     @Test
     fun treino_sugerido_screenshot() {

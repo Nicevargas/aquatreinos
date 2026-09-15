@@ -1,10 +1,11 @@
 package com.example.model
 
-// Os três níveis do carrossel "Cada Dia 1 Treino": 🟢 verde, 🟡 amarelo e 🔴 vermelho.
+// Os três níveis do carrossel "Cada Dia 1 Treino" (🟢 verde, 🟡 amarelo, 🔴 vermelho),
+// com os nomes do Método Natação Criativa. O nome do enum não muda: é o que o banco guarda.
 enum class TrainingLevel(val label: String, val carouselLabel: String) {
-    INICIANTE("Iniciante", "Menor volume"),
-    INTERMEDIARIO("Intermediário", "Intermediário"),
-    AVANCADO("Avançado", "Maior volume + técnica")
+    INICIANTE("Pré-condicionamento", "Ainda construindo o nado contínuo"),
+    INTERMEDIARIO("Condicionamento", "Nada contínuo com controle"),
+    AVANCADO("Aperfeiçoamento", "Técnica consolidada e ritmo controlado")
 }
 
 data class CalendarDay(
@@ -32,12 +33,19 @@ data class WorkoutSet(
     val isCompleted: Boolean = false,
     val header: String = "", // como sai no carrossel: "8x50m Crawl"
     val details: List<String> = emptyList(), // "25m ponta do dedo", "25m nado completo"
-    val distanceMeters: Int = 0
+    val distanceMeters: Int = 0,
+    // Método NC: zona de intensidade (A0, A1, A2, A3, AN, AA), PSE e o corretivo, quando houver.
+    val zona: String? = null,
+    val pse: String? = null,
+    val corretivo: Corretivo? = null
 )
+
+/** O antigo "educativo": nasce de um objetivo e volta ao nado completo. */
+data class Corretivo(val nome: String, val objetivo: String, val dica: String)
 
 data class WorkoutPhase(
     val id: String,
-    val title: String, // Aquecimento, Preparatória, Principal, Final
+    val title: String, // Ativação ... Recuperação (Método NC); treinos antigos: Aquecimento, Principal, Final
     val summary: String, // "400m Crawl Relaxado"
     val distanceMeters: Int,
     val percentage: Int,
@@ -59,8 +67,12 @@ data class Workout(
     val motivationalTip: String = "Mantenha a técnica na fase principal! Respiração bilateral e braçadas consistentes.",
     val workoutDate: String? = null, // AAAA-MM-DD
     val isSuggestion: Boolean = false, // veio do ciclo do carrossel, não de public.workouts
-    val focus: String? = null, // Técnica, Aeróbico, Velocidade...
-    val cycleDay: Int? = null
+    val focus: String? = null, // Técnica, Resistência, Velocidade...
+    val cycleDay: Int? = null,
+    // Método NC: objetivo do dia, zona predominante e o que ajustar se a sessão fugir do plano.
+    val objetivo: String? = null,
+    val zona: String? = null,
+    val ajuste: String? = null
 ) {
     /** Material usado em alguma série, na ordem em que aparece. */
     val equipment: List<String>

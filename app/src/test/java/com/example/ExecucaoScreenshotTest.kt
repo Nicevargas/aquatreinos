@@ -33,10 +33,10 @@ class ExecucaoScreenshotTest {
 
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/treinos_ciclo.json").readText())
-    private val roteiro = RoteiroDeTreino(ciclo.sugestao(DataCivil.deIso("2026-09-13"), TrainingLevel.INTERMEDIARIO)!!)
+    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
+    private val roteiro = RoteiroDeTreino(ciclo.sugestao(DataCivil.deIso("2026-09-28"), TrainingLevel.INTERMEDIARIO)!!)
     private val resumoCompleto = RegistroDoTreino.resumo(
-        RegistroDoTreino.montar(roteiro, ProgressoExecucao(5, 0), 2_520, 6, 4, "", "2026-09-13"),
+        RegistroDoTreino.montar(roteiro, ProgressoExecucao(roteiro.passos.size, 0), 2_520, 6, 4, "", "2026-09-13"),
         roteiro
     )
 
@@ -77,7 +77,7 @@ class ExecucaoScreenshotTest {
     fun publicar_nas_redes() {
         tela(
             ExecucaoUiState(
-                ativo = true, roteiro = roteiro, progresso = ProgressoExecucao(5, 0),
+                ativo = true, roteiro = roteiro, progresso = ProgressoExecucao(roteiro.passos.size, 0),
                 etapa = EtapaExecucao.PUBLICAR, resumo = resumoCompleto
             ),
             "execucao_publicar.png"

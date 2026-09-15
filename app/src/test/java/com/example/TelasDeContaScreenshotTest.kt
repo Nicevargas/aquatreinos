@@ -41,8 +41,8 @@ class TelasDeContaScreenshotTest {
 
     @get:Rule val composeTestRule = createComposeRule()
 
-    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/treinos_ciclo.json").readText())
-    private val dia = DataCivil.deIso("2026-09-13")
+    private val ciclo = CicloDeTreinos.deJson(File("src/main/assets/programa_nc.json").readText())
+    private val dia = DataCivil.deIso("2026-09-28")
     private val sessao = Sessao("a", "r", 0, "u1", "ana@exemplo.com")
 
     // Um treino "meu" de verdade: a sugestão remontada como o formulário faz.
@@ -100,12 +100,12 @@ class TelasDeContaScreenshotTest {
     @Test
     fun editor_com_sugestao_e_erro() {
         val digitado = MontadorDeTreino.paraDigitacao(ciclo.sugestao(dia, TrainingLevel.INICIANTE)!!).let {
-            it.copy(fases = it.fases + ("Final" to it.fases.getValue("Final") + com.example.data.treinos.SerieDigitada("Costas 200m", "", "vinte")))
+            it.copy(fases = it.fases + ("Recuperação" to it.fases.getValue("Recuperação") + com.example.data.treinos.SerieDigitada("Costas 200m", "", "vinte")))
         }
         composeTestRule.setContent {
             MyApplicationTheme {
                 EditorDeTreinoScreen(
-                    editor = EditorDeTreino(digitado = digitado, erros = listOf("Final, série 2: comece pela distância, como \"8x50m Crawl\" ou \"400m Crawl\".")),
+                    editor = EditorDeTreino(digitado = digitado, erros = listOf("Recuperação, série 2: comece pela distância, como \"8x50m Crawl\" ou \"400m Crawl\".")),
                     onAlterar = {}, onSalvar = {}, onCancelar = {}
                 )
             }

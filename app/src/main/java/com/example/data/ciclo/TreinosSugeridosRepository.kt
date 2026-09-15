@@ -11,13 +11,17 @@ import com.example.model.Workout
  * A cópia embarcada responde na hora e sem rede; o Supabase é a fonte oficial e
  * pode ter recebido um programa novo antes de o app ser atualizado, então,
  * quando conectado, a resposta dele substitui a embarcada.
+ *
+ * São vários ciclos embarcados (o antigo e o do Método NC): vale o que já tinha
+ * começado na data escolhida, como em public.treinos_sugeridos.
  */
-class TreinosSugeridosRepository(lerCicloEmbarcado: () -> String) {
+class TreinosSugeridosRepository(lerCiclosEmbarcados: () -> List<String>) {
 
-    private val cicloEmbarcado: CicloDeTreinos by lazy { CicloDeTreinos.deJson(lerCicloEmbarcado()) }
+    private val ciclos: List<CicloDeTreinos> by lazy { lerCiclosEmbarcados().map { CicloDeTreinos.deJson(it) } }
 
     fun embarcado(epochDay: Long, level: TrainingLevel): Workout =
-        cicloEmbarcado.sugestao(epochDay, level) ?: WorkoutRepository.getWorkoutForLevel(level)
+        CicloDeTreinos.escolher(ciclos, epochDay).sugestao(epochDay, level)
+            ?: WorkoutRepository.getWorkoutForLevel(level)
 
     suspend fun remoto(epochDay: Long, level: TrainingLevel): Workout? =
         SupabaseRepository.getTreinoSugerido(epochDay, level)

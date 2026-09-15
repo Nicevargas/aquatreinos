@@ -50,7 +50,10 @@ private fun repeticoes(set: WorkoutSet): Int =
 
 /** A série que o cronômetro acompanha: a primeira série repetida da parte principal. */
 private fun serieDoCronometro(workout: Workout): WorkoutSet? {
-    val principal = workout.phases.firstOrNull { it.title.equals("Principal", ignoreCase = true) }?.sets.orEmpty()
+    // "Desenvolvimento" no Método NC; "Principal" nos treinos antigos.
+    val principal = workout.phases.firstOrNull {
+        it.title.equals("Desenvolvimento", ignoreCase = true) || it.title.equals("Principal", ignoreCase = true)
+    }?.sets.orEmpty()
     val todas = workout.phases.flatMap { it.sets }
     return principal.firstOrNull { repeticoes(it) > 1 && it.restSeconds > 0 }
         ?: principal.firstOrNull { repeticoes(it) > 1 }
@@ -81,8 +84,11 @@ private fun AquagendaUiState.comTreino(workout: Workout): AquagendaUiState {
 
 class AquagendaViewModel(application: Application) : AndroidViewModel(application) {
 
+    // Os dois programas embarcados; o do Método NC vale a partir de 28/09/2026.
     private val treinos = TreinosSugeridosRepository {
-        application.assets.open("treinos_ciclo.json").bufferedReader().use { it.readText() }
+        listOf("treinos_ciclo.json", "programa_nc.json").map { nome ->
+            application.assets.open(nome).bufferedReader().use { it.readText() }
+        }
     }
 
     // O treino de hoje já sai da cópia embarcada no primeiro quadro, sem esperar rede.

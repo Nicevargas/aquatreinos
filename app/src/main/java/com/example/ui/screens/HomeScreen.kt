@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.example.ui.components.corDoNivel
 import androidx.compose.foundation.layout.Row
@@ -558,59 +564,85 @@ private fun WorkoutMetricBentoCards(workout: Workout) {
     }
 }
 
+/**
+ * Nível do treino do dia: o atual numa linha e a troca num menu. Com os nomes do
+ * Método NC ("Pré-condicionamento", "Aperfeiçoamento"), três botões lado a lado
+ * não cabem num celular estreito.
+ */
 @Composable
 private fun TrainingLevelToggle(
     selectedLevel: TrainingLevel,
     onLevelChange: (TrainingLevel) -> Unit
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(50.dp))
-            .testTag("training_level_toggle"),
-        shape = RoundedCornerShape(50.dp),
-        color = Color(0xFFE8F1FC),
-        border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(4.dp)
+    var aberto by remember { mutableStateOf(false) }
+    Box {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { aberto = true }
+                .testTag("training_level_toggle"),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder)
         ) {
-            TrainingLevel.entries.forEach { level ->
-                val isSelected = selectedLevel == level
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(50.dp))
-                        .then(
-                            if (isSelected) {
-                                Modifier.background(Color.White)
-                            } else {
-                                Modifier.clickable { onLevelChange(level) }
-                            }
-                        )
-                        .padding(vertical = 8.dp, horizontal = 2.dp)
-                        .testTag("training_level_${level.name.lowercase()}"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Bolinha em cima do nome: lado a lado, "Intermediário" não cabia no celular estreito.
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(corDoNivel(selectedLevel))
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "SEU NÍVEL",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AquaTextSecondary,
+                        letterSpacing = 0.8.sp
+                    )
+                    Text(
+                        text = selectedLevel.label,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AquaTextPrimary
+                    )
+                }
+                // Só a seta: com "Trocar" escrito, "Pré-condicionamento" quebrava no meio da palavra.
+                Icon(Icons.Filled.ArrowDropDown, contentDescription = "Trocar o nível", tint = AquaPrimary)
+            }
+        }
+        DropdownMenu(expanded = aberto, onDismissRequest = { aberto = false }) {
+            TrainingLevel.entries.forEach { level ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(
+                                text = level.label,
+                                fontWeight = FontWeight.Bold,
+                                color = if (level == selectedLevel) AquaPrimary else AquaTextPrimary
+                            )
+                            Text(text = level.carouselLabel, fontSize = 12.sp, color = AquaTextSecondary)
+                        }
+                    },
+                    leadingIcon = {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
+                                .size(12.dp)
                                 .clip(CircleShape)
                                 .background(corDoNivel(level))
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = level.label,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false,
-                            color = if (isSelected) AquaPrimary else AquaTextSecondary
-                        )
-                    }
-                }
+                    },
+                    onClick = {
+                        aberto = false
+                        onLevelChange(level)
+                    },
+                    modifier = Modifier.testTag("training_level_${level.name.lowercase()}")
+                )
             }
         }
     }

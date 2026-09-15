@@ -2,6 +2,15 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.ui.draw.clip
+import com.example.data.treinos.MetodoNC
+import com.example.ui.components.corDaZona
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -154,7 +163,7 @@ fun EditorDeTreinoScreen(
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text("Total: ${total}m", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AquaPrimary)
                     Text(
-                        text = "Escreva cada série como no carrossel, com a distância primeiro: \"8x50m Crawl\" ou \"400m Crawl\". Os detalhes explicam a série e não somam metros.",
+                        text = "Escreva cada série com a distância primeiro: \"8x50m Crawl\" ou \"400m Crawl\". Os detalhes explicam a série e não somam metros. Intervalo: #20\" descansa 20 s; @1'30\" sai a cada 1'30\". A zona (A0 a AA) diz a intensidade.",
                         fontSize = 12.sp,
                         color = AquaTextSecondary,
                         modifier = Modifier.padding(top = 2.dp)
@@ -224,6 +233,7 @@ fun EditorDeTreinoScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CartaoDeSerie(
     fase: String,
@@ -290,16 +300,61 @@ private fun CartaoDeSerie(
                     value = serie.intervalo,
                     onValueChange = { onAlterar(serie.copy(intervalo = it)) },
                     label = { Text("Intervalo (opcional)") },
-                    placeholder = { Text("20\" ou 1'30\"") },
+                    placeholder = { Text("#20\" ou @1'30\"") },
                     singleLine = true,
                     isError = intervaloInvalido,
                     supportingText = if (intervaloInvalido) {
-                        { Text("Use 20\" ou 1'30\".") }
+                        { Text("Use #20\" (descanso) ou @1'30\" (saída a cada).") }
                     } else {
                         null
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+                serie.corretivo?.let { c ->
+                    Text(
+                        text = "Corretivo: ${c.nome} — “${c.dica}”",
+                        fontSize = 12.sp,
+                        color = AquaTextSecondary,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Text(
+                    text = "Zona (opcional)",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AquaTextSecondary,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    (listOf("") + MetodoNC.ZONAS.map { it.sigla }).forEach { sigla ->
+                        val ativa = serie.zona.equals(sigla, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    when {
+                                        !ativa -> Color.White
+                                        sigla.isEmpty() -> AquaBlueBg
+                                        else -> corDaZona(sigla)
+                                    }
+                                )
+                                .border(1.dp, if (ativa) Color.Transparent else AquaBorder, RoundedCornerShape(8.dp))
+                                .clickable { onAlterar(serie.copy(zona = sigla)) }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("zona_${indice}_${sigla.ifEmpty { "nenhuma" }}")
+                        ) {
+                            Text(
+                                text = sigla.ifEmpty { "—" },
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (ativa && sigla in setOf("AN", "AA")) Color.White else AquaTextPrimary
+                            )
+                        }
+                    }
+                }
             }
         }
     }

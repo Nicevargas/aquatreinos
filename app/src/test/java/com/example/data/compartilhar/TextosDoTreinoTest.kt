@@ -21,15 +21,15 @@ class TextosDoTreinoTest {
         assertEquals("menos de 1 min", TextosDoTreino.duracao(59))
         assertEquals("42 min", TextosDoTreino.duracao(2_520))
         assertEquals("1h05", TextosDoTreino.duracao(3_900))
-        assertEquals("Intermediário", TextosDoTreino.nivel(TrainingLevel.INTERMEDIARIO))
-        assertEquals("Iniciante · Menor volume", TextosDoTreino.nivel(TrainingLevel.INICIANTE))
+        assertEquals("Condicionamento", TextosDoTreino.nivel(TrainingLevel.INTERMEDIARIO))
+        assertEquals("Pré-condicionamento", TextosDoTreino.nivel(TrainingLevel.INICIANTE))
     }
 
     @Test
     fun `legenda do treino do carrossel concluido`() {
         assertEquals(
             "🏊 Treino concluído: 1.800m em 42 min!\n\n" +
-                "Dia 14 do Cada Dia 1 Treino — foco em Regenerativo, nível Intermediário.\n\n" +
+                "Dia 14 do Cada Dia 1 Treino — foco em Regenerativo, nível Condicionamento.\n\n" +
                 "Intensidade: 6/10 · Complexidade: 4/10\n\n" +
                 "Treino de @natacaocriativa\n\n" +
                 TextosDoTreino.HASHTAGS,
@@ -45,7 +45,7 @@ class TextosDoTreinoTest {
 
         val proprio = doCarrossel.copy(titulo = "Tiros de sábado", foco = null, doCarrossel = false, cicloDia = null, intensidade = null, complexidade = null)
         val legenda = TextosDoTreino.legenda(proprio)
-        assertTrue(legenda.contains("Treino \"Tiros de sábado\" — nível Intermediário."))
+        assertTrue(legenda.contains("Treino \"Tiros de sábado\" — nível Condicionamento."))
         assertFalse(legenda.contains("Intensidade"))
         assertFalse(legenda.contains("@natacaocriativa"))
     }

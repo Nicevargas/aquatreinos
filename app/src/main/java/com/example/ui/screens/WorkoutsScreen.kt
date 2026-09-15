@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,8 +52,11 @@ import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.data.AquagendaConstants
+import com.example.data.treinos.MetodoNC
 import com.example.model.Workout
 import com.example.model.WorkoutPhase
+import com.example.ui.components.EtiquetaDeZona
+import com.example.ui.components.corDoBloco
 import com.example.ui.theme.AquaBlueBg
 import com.example.ui.theme.AquaBorder
 import com.example.ui.theme.AquaCyan
@@ -275,6 +280,12 @@ fun WorkoutsScreen(
                 }
             }
 
+            // Método NC: o objetivo vem antes da metragem.
+            workout.objetivo?.let { objetivo ->
+                Spacer(modifier = Modifier.height(16.dp))
+                CartaoDoObjetivo(objetivo = objetivo, zona = workout.zona, ajuste = workout.ajuste)
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Equipamentos Necessários
@@ -330,12 +341,7 @@ fun WorkoutsScreen(
                 workout.phases.forEach { phase ->
                     WorkoutStructurePhaseCard(
                         phase = phase,
-                        accentColor = when (phase.title) {
-                            "Aquecimento" -> AquaGreen
-                            "Principal" -> AquaPrimary
-                            "Preparatória" -> AquaCyan
-                            else -> AquaYellow
-                        }
+                        accentColor = corDoBloco(phase.title)
                     )
                 }
             }
@@ -404,6 +410,61 @@ fun WorkoutsScreen(
     }
 }
 
+/** Objetivo do dia, zona predominante e o que ajustar: a primeira coisa a ler no Método NC. */
+@Composable
+private fun CartaoDoObjetivo(objetivo: String, zona: String?, ajuste: String?) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("cartao_objetivo"),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "OBJETIVO DO DIA",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = AquaTextSecondary,
+                letterSpacing = 1.sp
+            )
+            // Etiqueta embaixo do título: ao lado, espremia "OBJETIVO DO DIA" no celular estreito.
+            MetodoNC.zona(zona)?.let { z ->
+                EtiquetaDeZona(
+                    sigla = z.sigla,
+                    texto = "${z.sigla} · ${z.nome}",
+                    tamanho = 12.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+            Text(
+                text = objetivo,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AquaTextPrimary,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+            MetodoNC.zona(zona)?.let { z ->
+                Text(
+                    text = "Esforço (PSE) ${z.pse} de 10",
+                    fontSize = 12.sp,
+                    color = AquaTextSecondary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            ajuste?.let {
+                Text(
+                    text = "Ajuste: $it",
+                    fontSize = 12.sp,
+                    color = AquaTextSecondary,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun EquipmentCard(
     title: String,
@@ -459,6 +520,7 @@ private fun iconeDoMaterial(nome: String): Pair<ImageVector, Color> = when (nome
 }
 
 /** Uma fase do treino com as séries do jeito que saem no carrossel. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun WorkoutStructurePhaseCard(
     phase: WorkoutPhase,
@@ -508,15 +570,27 @@ private fun WorkoutStructurePhaseCard(
                     )
                 }
                 phase.sets.forEach { set ->
-                    Text(
-                        text = set.header.ifBlank { "${set.repsDistance}m ${set.description}" },
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AquaTextPrimary,
-                        modifier = Modifier.padding(top = 6.dp)
-                    )
-                    val cauda = (set.details + listOfNotNull(set.intervalTarget.takeIf { it.isNotBlank() }?.let { "Int: $it" }))
-                        .joinToString(" · ")
+                    // A etiqueta segue o texto; se não couber, desce para a linha de baixo.
+                    FlowRow(
+                        modifier = Modifier.padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = set.header.ifBlank { "${set.repsDistance}m ${set.description}" },
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = AquaTextPrimary,
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                        set.zona?.let {
+                            EtiquetaDeZona(sigla = it, modifier = Modifier.align(Alignment.CenterVertically))
+                        }
+                    }
+                    val cauda = (
+                        (if (set.corretivo != null) emptyList() else set.details) +
+                            listOfNotNull(MetodoNC.intervaloLegivel(set.intervalTarget))
+                        ).joinToString(" · ")
                     if (cauda.isNotEmpty()) {
                         Text(
                             text = cauda,
@@ -524,31 +598,31 @@ private fun WorkoutStructurePhaseCard(
                             color = AquaTextSecondary
                         )
                     }
+                    // Corretivo: o que corrigir e a dica, e a volta ao nado completo.
+                    set.corretivo?.let { c ->
+                        Text(
+                            text = "Corretivo: ${c.nome} + nado completo — “${c.dica}”",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = AquaYellowText
+                        )
+                    }
                 }
             }
 
-            // Percentage pill badge
+            // Percentage pill badge, na cor do bloco
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50.dp))
-                    .background(
-                        when (title) {
-                            "Aquecimento" -> AquaGreenBg
-                            "Principal" -> AquaBlueBg
-                            else -> AquaYellowBg
-                        }
-                    )
+                    .background(accentColor.copy(alpha = 0.16f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = percentage,
-                    color = when (title) {
-                        "Aquecimento" -> AquaGreenText
-                        "Principal" -> AquaPrimary
-                        else -> AquaYellowText
-                    },
+                    color = AquaTextPrimary,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    softWrap = false
                 )
             }
         }
