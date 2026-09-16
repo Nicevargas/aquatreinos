@@ -9,6 +9,7 @@ import com.example.data.treinos.Montagem
 import com.example.data.treinos.MontadorDeTreino
 import com.example.data.treinos.SerieDigitada
 import com.example.data.treinos.TreinoDigitado
+import com.example.data.treinos.paraWorkout
 import com.example.model.TrainingLevel
 import com.example.model.Workout
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,10 @@ data class EditorDeTreino(
     val id: String? = null,
     val digitado: TreinoDigitado,
     val erros: List<String> = emptyList(),
-    val salvando: Boolean = false
+    val salvando: Boolean = false,
+    // Ajustar o treino antes de nadar: "Usar este treino" não salva; salva ao concluir.
+    val paraNadar: Boolean = false,
+    val origem: Workout? = null
 )
 
 data class MeusTreinosUiState(
@@ -32,7 +36,9 @@ data class MeusTreinosUiState(
     val editor: EditorDeTreino? = null,
     val paraExcluir: Workout? = null,
     val excluindo: Boolean = false,
-    val mensagem: String? = null
+    val mensagem: String? = null,
+    // Treino ajustado pronto para virar o treino da vez (a tela consome e limpa).
+    val treinoAjustado: Workout? = null
 )
 
 /** CRUD de "Meus treinos". */
@@ -78,6 +84,47 @@ class MeusTreinosViewModel : ViewModel() {
     /** Abre o formulário já preenchido com a sugestão do dia, para salvar como treino seu. */
     fun salvarSugestao(sugestao: Workout) {
         _ui.update { it.copy(editor = EditorDeTreino(digitado = MontadorDeTreino.paraDigitacao(sugestao))) }
+    }
+
+    /** "Editar este treino" na aba Treinos: ajusta para nadar hoje, sem salvar ainda. */
+    fun ajustarParaNadar(treino: Workout) {
+        _ui.update {
+            it.copy(
+                editor = EditorDeTreino(
+                    digitado = MontadorDeTreino.paraDigitacao(treino, DataCivil.hoje()),
+                    paraNadar = true,
+                    origem = treino
+                )
+            )
+        }
+    }
+
+    /** "Usar este treino": vira o treino da vez e só entra em Meus treinos ao concluir. */
+    fun usarAjuste() {
+        val editor = _ui.value.editor ?: return
+        val treino = when (val montagem = MontadorDeTreino.montar(editor.digitado)) {
+            is Montagem.ComErros -> {
+                _ui.update { it.copy(editor = editor.copy(erros = montagem.erros)) }
+                return
+            }
+            is Montagem.Pronto -> montagem.treino
+        }
+        val origem = editor.origem
+        val ajustado = treino.paraWorkout("ajustado_${System.currentTimeMillis()}").copy(
+            tag = "Treino ajustado",
+            focus = origem?.focus,
+            objetivo = origem?.objetivo,
+            zona = origem?.zona,
+            ajuste = origem?.ajuste,
+            motivationalTip = origem?.motivationalTip ?: treino.title,
+            plano = origem?.plano,
+            salvarAoConcluir = true
+        )
+        _ui.update { it.copy(editor = null, treinoAjustado = ajustado) }
+    }
+
+    fun treinoAjustadoUsado() {
+        _ui.update { it.copy(treinoAjustado = null) }
     }
 
     fun editar(treino: Workout) {

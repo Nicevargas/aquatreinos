@@ -27,6 +27,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,8 +63,46 @@ fun MeusTreinosScreen(
     onConfirmarExclusao: () -> Unit,
     onCancelarExclusao: () -> Unit,
     onTentarDeNovo: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAbrirCodigo: ((String) -> Unit)? = null,
+    abrindoCodigo: Boolean = false
 ) {
+    var pedirCodigo by rememberSaveable { mutableStateOf(false) }
+    var codigoDigitado by rememberSaveable { mutableStateOf("") }
+
+    if (pedirCodigo && onAbrirCodigo != null) {
+        AlertDialog(
+            onDismissRequest = { pedirCodigo = false },
+            title = { Text("Abrir treino recebido", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Cole o link, a mensagem que você recebeu ou só o código do treino.", color = AquaTextSecondary)
+                    OutlinedTextField(
+                        value = codigoDigitado,
+                        onValueChange = { codigoDigitado = it },
+                        label = { Text("Link ou código") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                            .testTag("campo_codigo_treino")
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onAbrirCodigo(codigoDigitado)
+                        pedirCodigo = false
+                        codigoDigitado = ""
+                    },
+                    enabled = codigoDigitado.isNotBlank(),
+                    modifier = Modifier.testTag("abrir_codigo_treino")
+                ) { Text("Abrir", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { pedirCodigo = false }) { Text("Cancelar") } }
+        )
+    }
+
     estado.paraExcluir?.let { alvo ->
         AlertDialog(
             onDismissRequest = onCancelarExclusao,
@@ -116,6 +160,17 @@ fun MeusTreinosScreen(
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Novo", fontWeight = FontWeight.Bold, softWrap = false)
+                }
+            }
+            if (onAbrirCodigo != null) {
+                TextButton(
+                    onClick = { pedirCodigo = true },
+                    enabled = !abrindoCodigo,
+                    modifier = Modifier
+                        .offset(x = (-12).dp)
+                        .testTag("botao_treino_recebido")
+                ) {
+                    Text(if (abrindoCodigo) "Abrindo treino…" else "Recebeu um treino? Abrir pelo link ou código")
                 }
             }
         }

@@ -74,7 +74,9 @@ data class Workout(
     val zona: String? = null,
     val ajuste: String? = null,
     // Treino que faz parte de um plano de treino: concluído, conta no progresso do plano.
-    val plano: ReferenciaDoPlano? = null
+    val plano: ReferenciaDoPlano? = null,
+    // Treino ajustado na hora ou recebido de outra pessoa: vai para Meus treinos quando for concluído.
+    val salvarAoConcluir: Boolean = false
 ) {
     /** Material usado em alguma série, na ordem em que aparece. */
     val equipment: List<String>

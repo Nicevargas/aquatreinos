@@ -11,6 +11,8 @@ import com.example.data.execucao.ProgressoExecucao
 import com.example.data.execucao.RegistroDoTreino
 import com.example.data.execucao.RoteiroDeTreino
 import com.example.data.execucao.TreinoRealizadoDto
+import com.example.data.treinos.MeusTreinosRepository
+import com.example.data.treinos.paraGravacao
 import com.example.data.execucao.TreinosRealizadosRepository
 import com.example.data.progresso.Conquista
 import com.example.data.progresso.Pontuacao
@@ -48,7 +50,10 @@ data class ExecucaoUiState(
     val estendeuSerie: Boolean = false,
     // Gamificação: pontos que este treino somou e o nível com eles.
     val pontosGanhos: Int? = null,
-    val nivelDePontos: String? = null
+    val nivelDePontos: String? = null,
+    // Treino ajustado ou recebido: se entrou (ou não) em Meus treinos ao salvar.
+    val avisoAoSalvar: String? = null,
+    val avisoEhErro: Boolean = false
 )
 
 /** O que a tela de treino salvo comemora. */
@@ -152,7 +157,22 @@ class ExecucaoViewModel(
 
         _ui.update { it.copy(salvando = true, erro = null) }
         viewModelScope.launch {
-            when (val r = TreinosRealizadosRepository.registrar(registro)) {
+            // Treino ajustado na hora ou recebido: entra em Meus treinos agora que foi concluído.
+            var registroFinal = registro
+            var aviso: Pair<String, Boolean>? = null
+            if (roteiro.workout.salvarAoConcluir) {
+                when (val salvo = MeusTreinosRepository.criar(roteiro.workout.paraGravacao(dataIso))) {
+                    is Resultado.Ok -> {
+                        registroFinal = registro.copy(workoutId = salvo.valor.id, treinoCicloId = null)
+                        // Se o registro falhar e a pessoa tentar de novo, não salva duas vezes.
+                        val salvoNoRoteiro = RoteiroDeTreino(roteiro.workout.copy(id = salvo.valor.id, salvarAoConcluir = false))
+                        _ui.update { it.copy(roteiro = salvoNoRoteiro) }
+                        aviso = "Este treino foi salvo em Meus treinos." to false
+                    }
+                    is Resultado.Falha -> aviso = "O treino foi registrado, mas não entrou em Meus treinos: ${salvo.mensagem}" to true
+                }
+            }
+            when (val r = TreinosRealizadosRepository.registrar(registroFinal)) {
                 is Resultado.Ok -> {
                     val celebracao = celebracao(r.valor)
                     _ui.update {
@@ -164,7 +184,9 @@ class ExecucaoViewModel(
                             serie = celebracao?.serie,
                             estendeuSerie = celebracao?.estendeuSerie ?: false,
                             pontosGanhos = celebracao?.pontos,
-                            nivelDePontos = celebracao?.nivel
+                            nivelDePontos = celebracao?.nivel,
+                            avisoAoSalvar = aviso?.first,
+                            avisoEhErro = aviso?.second ?: false
                         )
                     }
                 }

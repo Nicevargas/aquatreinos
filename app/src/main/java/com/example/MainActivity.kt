@@ -64,6 +64,9 @@ import com.example.viewmodel.AquagendaViewModel
 import com.example.viewmodel.ContaUiState
 import com.example.viewmodel.ContaViewModel
 import com.example.viewmodel.MeusTreinosViewModel
+import android.content.Intent
+import com.example.data.compartilhar.LinkDeTreino
+import com.example.viewmodel.CompartilharTreinoViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,11 +78,19 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
+        // Link de treino compartilhado (natacaocriativa://treino/<código>) que abriu o app.
+        LinkDeTreino.receber(intent)
         setContent {
             MyApplicationTheme {
                 AquagendaRaiz()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        LinkDeTreino.receber(intent)
     }
 }
 
@@ -124,7 +135,8 @@ fun AquagendaApp(
     parq: ParQViewModel = viewModel(),
     plano: PlanoViewModel = viewModel(),
     progresso: ProgressoViewModel = viewModel(),
-    ranking: RankingViewModel = viewModel()
+    ranking: RankingViewModel = viewModel(),
+    compartilhar: CompartilharTreinoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val meus by meusTreinos.ui.collectAsStateWithLifecycle()
@@ -133,6 +145,8 @@ fun AquagendaApp(
     val estadoPlano by plano.ui.collectAsStateWithLifecycle()
     val estadoProgresso by progresso.ui.collectAsStateWithLifecycle()
     val estadoRanking by ranking.ui.collectAsStateWithLifecycle()
+    val estadoCompartilhar by compartilhar.ui.collectAsStateWithLifecycle()
+    val codigoRecebido by LinkDeTreino.pendente.collectAsStateWithLifecycle()
     val nivelDoPlano = estadoConta.perfil?.nivel ?: uiState.selectedLevel
     val contexto = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -163,11 +177,53 @@ fun AquagendaApp(
         }
     }
 
-    // Treino salvo e execução fechada: o plano marca o que foi feito e o progresso se atualiza.
+    // Treino salvo e execução fechada: o plano marca o que foi feito, o progresso se atualiza
+    // e Meus treinos mostra o treino ajustado ou recebido que acabou de ser salvo.
     LaunchedEffect(estadoExecucao.ativo) {
         if (!estadoExecucao.ativo) {
             plano.atualizarFeitos()
             progresso.carregar()
+            meusTreinos.carregar()
+        }
+    }
+
+    // Link de treino que abriu o app: abre depois do login (esta tela só existe logado).
+    LaunchedEffect(codigoRecebido) {
+        codigoRecebido?.let {
+            LinkDeTreino.consumido()
+            compartilhar.abrir(it)
+        }
+    }
+
+    // Treino recebido ou ajustado vira o treino da vez, na aba Treinos.
+    LaunchedEffect(estadoCompartilhar.treinoRecebido) {
+        estadoCompartilhar.treinoRecebido?.let {
+            viewModel.usarTreino(it)
+            viewModel.selectTab(AppNavTab.WORKOUTS)
+            compartilhar.treinoRecebidoUsado()
+        }
+    }
+    LaunchedEffect(meus.treinoAjustado) {
+        meus.treinoAjustado?.let {
+            viewModel.usarTreino(it)
+            viewModel.selectTab(AppNavTab.WORKOUTS)
+            meusTreinos.treinoAjustadoUsado()
+        }
+    }
+
+    // Mensagem do treino pronta: abre a janela de compartilhar do Android (WhatsApp, redes...).
+    LaunchedEffect(estadoCompartilhar.textoParaEnviar) {
+        estadoCompartilhar.textoParaEnviar?.let { texto ->
+            val envio = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texto)
+            contexto.startActivity(Intent.createChooser(envio, "Compartilhar treino"))
+            compartilhar.textoEnviado()
+        }
+    }
+
+    LaunchedEffect(estadoCompartilhar.mensagem) {
+        estadoCompartilhar.mensagem?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            compartilhar.mensagemMostrada()
         }
     }
 
@@ -268,7 +324,8 @@ fun AquagendaApp(
             editor = editor,
             onAlterar = meusTreinos::alterarDigitado,
             onSalvar = meusTreinos::salvar,
-            onCancelar = meusTreinos::fecharEditor
+            onCancelar = meusTreinos::fecharEditor,
+            onUsarParaNadar = meusTreinos::usarAjuste
         )
     } else {
         // Main App Layout with TopBar, Content and BottomNav
@@ -353,7 +410,10 @@ fun AquagendaApp(
                             WorkoutsScreen(
                                 workout = uiState.currentWorkout,
                                 onStartWorkoutClick = { parq.antesDeTreinar { execucao.iniciar(uiState.currentWorkout) } },
-                                onSaveToMyWorkouts = { meusTreinos.salvarSugestao(uiState.currentWorkout) }
+                                onSaveToMyWorkouts = { meusTreinos.salvarSugestao(uiState.currentWorkout) },
+                                onEditar = { meusTreinos.ajustarParaNadar(uiState.currentWorkout) },
+                                onCompartilhar = { compartilhar.compartilhar(uiState.currentWorkout) },
+                                compartilhando = estadoCompartilhar.gerando
                             )
                         }
 
@@ -366,7 +426,9 @@ fun AquagendaApp(
                                 onExcluir = meusTreinos::pedirExclusao,
                                 onConfirmarExclusao = meusTreinos::confirmarExclusao,
                                 onCancelarExclusao = meusTreinos::cancelarExclusao,
-                                onTentarDeNovo = meusTreinos::carregar
+                                onTentarDeNovo = meusTreinos::carregar,
+                                onAbrirCodigo = compartilhar::abrir,
+                                abrindoCodigo = estadoCompartilhar.abrindo
                             )
                         }
 

@@ -139,7 +139,32 @@ class LayoutEstreitoScreenshotTest {
 
     @Test
     fun treinos() = capturar("treinos.png") {
-        WorkoutsScreen(workout = intermediario, onStartWorkoutClick = {}, onSaveToMyWorkouts = {})
+        WorkoutsScreen(
+            workout = intermediario.copy(tag = "Recebido de Ana", salvarAoConcluir = true),
+            onStartWorkoutClick = {}, onSaveToMyWorkouts = {}, onEditar = {}, onCompartilhar = {}
+        )
+    }
+
+    @Test
+    fun editor_ajustar_para_nadar() = capturar("editor_ajustar.png") {
+        EditorDeTreinoScreen(
+            editor = EditorDeTreino(
+                digitado = MontadorDeTreino.paraDigitacao(intermediario, dia),
+                paraNadar = true,
+                origem = intermediario
+            ),
+            onAlterar = {}, onSalvar = {}, onCancelar = {}, onUsarParaNadar = {}
+        )
+    }
+
+    @Test
+    fun meus_treinos_vazio_com_codigo() = capturar("meus_treinos_codigo.png") {
+        MeusTreinosScreen(
+            estado = MeusTreinosUiState(),
+            onNovo = {}, onEditar = {}, onUsar = {}, onExcluir = {},
+            onConfirmarExclusao = {}, onCancelarExclusao = {}, onTentarDeNovo = {},
+            onAbrirCodigo = {}
+        )
     }
 
     @Test

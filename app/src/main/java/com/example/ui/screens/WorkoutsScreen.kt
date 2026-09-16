@@ -22,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.FrontHand
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Pool
@@ -79,7 +81,10 @@ fun WorkoutsScreen(
     workout: Workout,
     onStartWorkoutClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onSaveToMyWorkouts: (() -> Unit)? = null
+    onSaveToMyWorkouts: (() -> Unit)? = null,
+    onEditar: (() -> Unit)? = null,
+    onCompartilhar: (() -> Unit)? = null,
+    compartilhando: Boolean = false
 ) {
     val scrollState = rememberScrollState()
 
@@ -347,6 +352,68 @@ fun WorkoutsScreen(
             }
 
             Spacer(modifier = Modifier.height(26.dp))
+
+            if (workout.salvarAoConcluir) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("aviso_salvar_ao_concluir"),
+                    shape = RoundedCornerShape(14.dp),
+                    color = AquaYellowBg
+                ) {
+                    Text(
+                        text = "${workout.tag}: este treino vai para Meus treinos quando você concluir.",
+                        fontSize = 13.sp,
+                        color = AquaTextPrimary,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (onEditar != null || onCompartilhar != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    onEditar?.let { editar ->
+                        OutlinedButton(
+                            onClick = editar,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .testTag("editar_este_treino"),
+                            shape = RoundedCornerShape(18.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Icon(androidx.compose.material.icons.Icons.Outlined.Edit, contentDescription = null, tint = AquaPrimary, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Editar", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AquaPrimary, maxLines = 1)
+                        }
+                    }
+                    onCompartilhar?.let { compartilhar ->
+                        OutlinedButton(
+                            onClick = compartilhar,
+                            enabled = !compartilhando,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp)
+                                .testTag("compartilhar_este_treino"),
+                            shape = RoundedCornerShape(18.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
+                        ) {
+                            if (compartilhando) {
+                                androidx.compose.material3.CircularProgressIndicator(color = AquaPrimary, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                            } else {
+                                Icon(androidx.compose.material.icons.Icons.Outlined.Share, contentDescription = null, tint = AquaPrimary, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Compartilhar", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AquaPrimary, maxLines = 1)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             if (onSaveToMyWorkouts != null && workout.isSuggestion) {
                 OutlinedButton(

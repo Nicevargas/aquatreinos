@@ -1178,6 +1178,8 @@ private fun TelaPublicar(
             nivel = estado.nivelDePontos
         )
 
+        estado.avisoAoSalvar?.let { MensagemDeTela(texto = it, erro = estado.avisoEhErro) }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         QuandoVoltarANadar(hoje = DataCivil.hoje(), onEscolher = onLembrete)

@@ -35,6 +35,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,7 +72,8 @@ fun EditorDeTreinoScreen(
     onAlterar: (com.example.data.treinos.TreinoDigitado) -> Unit,
     onSalvar: () -> Unit,
     onCancelar: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUsarParaNadar: () -> Unit = {}
 ) {
     BackHandler(onBack = onCancelar)
     val digitado = editor.digitado
@@ -95,14 +97,18 @@ fun EditorDeTreinoScreen(
                 Icon(Icons.Filled.Close, contentDescription = "Cancelar")
             }
             Text(
-                text = if (editor.id == null) "Novo treino" else "Editar treino",
+                text = when {
+                    editor.paraNadar -> "Ajustar treino"
+                    editor.id == null -> "Novo treino"
+                    else -> "Editar treino"
+                },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = AquaTextPrimary,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onSalvar, enabled = !editor.salvando) {
-                Text("Salvar", fontWeight = FontWeight.Bold)
+            TextButton(onClick = if (editor.paraNadar) onUsarParaNadar else onSalvar, enabled = !editor.salvando) {
+                Text(if (editor.paraNadar) "Usar" else "Salvar", fontWeight = FontWeight.Bold)
             }
         }
 
@@ -114,6 +120,18 @@ fun EditorDeTreinoScreen(
         ) {
             if (editor.erros.isNotEmpty()) {
                 MensagemDeTela(texto = editor.erros.joinToString("\n"), erro = true)
+            }
+
+            if (editor.paraNadar) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = AquaBlueBg) {
+                    Text(
+                        text = "Troque, tire ou acrescente o que quiser. O treino ajustado vai para Meus treinos quando você concluir.",
+                        fontSize = 13.sp,
+                        color = AquaTextPrimary,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -207,7 +225,36 @@ fun EditorDeTreinoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
+            if (editor.paraNadar) {
+                Button(
+                    onClick = onUsarParaNadar,
+                    enabled = !editor.salvando,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .testTag("editor_usar_para_nadar"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AquaPrimary)
+                ) {
+                    Text("Usar este treino", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = onSalvar,
+                    enabled = !editor.salvando,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("editor_salvar"),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    if (editor.salvando) {
+                        CircularProgressIndicator(color = AquaPrimary, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                    } else {
+                        Text("Salvar em Meus treinos agora", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = AquaPrimary)
+                    }
+                }
+            } else Button(
                 onClick = onSalvar,
                 enabled = !editor.salvando,
                 modifier = Modifier

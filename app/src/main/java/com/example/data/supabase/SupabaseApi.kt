@@ -104,6 +104,20 @@ interface SupabaseApi {
         @Body resposta: com.example.data.parq.ParQRespostaDto
     ): Response<List<com.example.data.parq.ParQRespostaDto>>
 
+    // ---- Treino compartilhado por link. Criar é do dono; abrir é pela função, com o código. ----
+
+    @POST("rest/v1/treinos_compartilhados")
+    @Headers("Prefer: return=representation")
+    suspend fun compartilharTreino(
+        @Body treino: com.example.data.compartilhar.NovoTreinoCompartilhadoDto,
+        @Query("select") select: String = "codigo,titulo"
+    ): Response<List<com.example.data.compartilhar.TreinoCompartilhadoDto>>
+
+    @POST("rest/v1/rpc/abrir_treino_compartilhado")
+    suspend fun abrirTreinoCompartilhado(
+        @Body params: com.example.data.compartilhar.AbrirTreinoParams
+    ): Response<List<com.example.data.compartilhar.TreinoCompartilhadoDto>>
+
     // ---- Ranking. Cada um lê e grava só os próprios dados; a lista vem da função. ----
 
     @GET("rest/v1/profiles")
