@@ -12,6 +12,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.example.data.compartilhar.FormatoDoCartao
 import com.example.data.compartilhar.TextosDoTreino
@@ -181,6 +182,7 @@ object CartaoDoConvite {
 fun compartilharTreinoParaFazer(context: Context, treino: Workout, codigo: String, mensagem: String) {
     (context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)
         ?.setPrimaryClip(ClipData.newPlainText("Treino", mensagem))
+    Toast.makeText(context, "Mensagem copiada. No Instagram, cole na legenda.", Toast.LENGTH_LONG).show()
 
     val envio = runCatching {
         val arquivo = CartaoDoTreino.salvar(context, CartaoDoConvite.desenhar(treino, codigo))
