@@ -10,6 +10,7 @@ import com.example.data.supabase.SupabaseRepository
 import com.example.data.supabase.SupabaseStatus
 import com.example.model.AppNavTab
 import com.example.model.CalendarDay
+import com.example.model.ModoDeTreino
 import com.example.model.TrainingLevel
 import com.example.model.Workout
 import kotlinx.coroutines.Job
@@ -22,30 +23,36 @@ import kotlinx.coroutines.launch
 data class AquagendaUiState(
     val selectedTab: AppNavTab = AppNavTab.HOME,
     val selectedLevel: TrainingLevel = TrainingLevel.INTERMEDIARIO,
+    val selectedModo: ModoDeTreino = ModoDeTreino.PISCINA,
     val selectedEpochDay: Long = DataCivil.hoje(),
     val calendarDays: List<CalendarDay> = WorkoutRepository.diasDoCalendario(DataCivil.hoje()),
     val currentWorkout: Workout = WorkoutRepository.getWorkoutForLevel(TrainingLevel.INTERMEDIARIO),
     val userNotification: String? = null,
     val supabaseStatus: SupabaseStatus = SupabaseRepository.getInitialStatus(),
     val isSyncingWithSupabase: Boolean = false
-)
+) {
+    /** Águas abertas escolhido num nível sem treino desse modo: a tela mostra o de piscina e avisa. */
+    val modoSemTreinoNoNivel: Boolean get() = !selectedModo.temTreinoPara(selectedLevel)
+
+    /** O modo do treino que está na tela. */
+    val modoEmUso: ModoDeTreino get() = if (modoSemTreinoNoNivel) ModoDeTreino.PISCINA else selectedModo
+}
 
 private fun AquagendaUiState.comTreino(workout: Workout): AquagendaUiState =
     copy(currentWorkout = workout)
 
 class AquagendaViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Os dois programas embarcados; o do Método NC vale a partir de 15/09/2026.
-    private val treinos = TreinosSugeridosRepository {
-        listOf("treinos_ciclo.json", "programa_nc.json").map { nome ->
-            application.assets.open(nome).bufferedReader().use { it.readText() }
-        }
+    // Piscina: o programa antigo e o do Método NC (desde 15/09/2026). Águas abertas: o seu.
+    private val treinos = TreinosSugeridosRepository { modo ->
+        when (modo) {
+            ModoDeTreino.PISCINA -> listOf("treinos_ciclo.json", "programa_nc.json")
+            ModoDeTreino.AGUAS_ABERTAS -> listOf("programa_aa.json")
+        }.map { nome -> application.assets.open(nome).bufferedReader().use { it.readText() } }
     }
 
     // O treino de hoje já sai da cópia embarcada no primeiro quadro, sem esperar rede.
-    private val _uiState = MutableStateFlow(
-        AquagendaUiState().let { it.comTreino(treinos.embarcado(it.selectedEpochDay, it.selectedLevel)) }
-    )
+    private val _uiState = MutableStateFlow(AquagendaUiState().let { it.comTreino(embarcado(it)) })
     val uiState: StateFlow<AquagendaUiState> = _uiState.asStateFlow()
 
     private var remoteWorkoutJob: Job? = null
@@ -53,6 +60,13 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     init {
         checkSupabaseConnection()
     }
+
+    private fun embarcado(state: AquagendaUiState): Workout =
+        treinos.embarcado(state.selectedEpochDay, state.selectedLevel, state.modoEmUso)
+            ?: treinos.embarcado(state.selectedEpochDay, state.selectedLevel)
+
+    private fun mesmaEscolha(a: AquagendaUiState, b: AquagendaUiState) =
+        a.selectedEpochDay == b.selectedEpochDay && a.selectedLevel == b.selectedLevel && a.selectedModo == b.selectedModo
 
     fun checkSupabaseConnection() {
         viewModelScope.launch {
@@ -68,13 +82,11 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     fun syncDataFromSupabase() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSyncingWithSupabase = true) }
-            val dia = _uiState.value.selectedEpochDay
-            val level = _uiState.value.selectedLevel
+            val inicio = _uiState.value
             try {
-                val remoteWorkout = treinos.remoto(dia, level)
+                val remoteWorkout = treinos.remoto(inicio.selectedEpochDay, inicio.selectedLevel, inicio.modoEmUso)
                 _uiState.update { state ->
-                    val mesmaEscolha = state.selectedEpochDay == dia && state.selectedLevel == level
-                    val withWorkout = if (remoteWorkout != null && mesmaEscolha) state.comTreino(remoteWorkout) else state
+                    val withWorkout = if (remoteWorkout != null && mesmaEscolha(state, inicio)) state.comTreino(remoteWorkout) else state
                     withWorkout.copy(
                         isSyncingWithSupabase = false,
                         userNotification = "Sincronizado com Supabase Cloud com sucesso!"
@@ -89,17 +101,13 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     /** Mostra na hora o treino embarcado e, com Supabase conectado, troca pelo do banco. */
     private fun loadSuggestedWorkout() {
         val state = _uiState.value
-        val dia = state.selectedEpochDay
-        val level = state.selectedLevel
-        _uiState.update { it.comTreino(treinos.embarcado(dia, level)) }
+        _uiState.update { it.comTreino(embarcado(state)) }
 
         remoteWorkoutJob?.cancel()
         if (state.supabaseStatus != SupabaseStatus.CONNECTED) return
         remoteWorkoutJob = viewModelScope.launch {
-            val remoto = treinos.remoto(dia, level) ?: return@launch
-            _uiState.update { s ->
-                if (s.selectedEpochDay == dia && s.selectedLevel == level) s.comTreino(remoto) else s
-            }
+            val remoto = treinos.remoto(state.selectedEpochDay, state.selectedLevel, state.modoEmUso) ?: return@launch
+            _uiState.update { s -> if (mesmaEscolha(s, state)) s.comTreino(remoto) else s }
         }
     }
 
@@ -132,6 +140,12 @@ class AquagendaViewModel(application: Application) : AndroidViewModel(applicatio
     fun selectLevel(level: TrainingLevel) {
         if (_uiState.value.selectedLevel == level) return
         _uiState.update { it.copy(selectedLevel = level) }
+        loadSuggestedWorkout()
+    }
+
+    fun selectModo(modo: ModoDeTreino) {
+        if (_uiState.value.selectedModo == modo) return
+        _uiState.update { it.copy(selectedModo = modo) }
         loadSuggestedWorkout()
     }
 

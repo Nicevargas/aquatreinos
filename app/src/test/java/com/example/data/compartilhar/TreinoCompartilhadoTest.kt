@@ -66,8 +66,9 @@ class TreinoCompartilhadoTest {
     @Test
     fun `mensagem traz o treino para ler, o link e o codigo`() {
         val texto = MensagemDoTreino.paraCompartilhar(treino, "a1b2c3d4e5")
-        assertTrue(texto.startsWith("🏊 *${treino.title}*"))
-        treino.phases.forEach { assertTrue(it.title, texto.contains("*${it.title}*")) }
+        assertTrue(texto.startsWith("🏊 ${treino.title}\n"))
+        assertFalse("sem asteriscos", texto.contains('*'))
+        treino.phases.forEach { assertTrue(it.title, texto.contains("\n${it.title} · ")) }
         assertTrue(texto.contains(CodigoDoTreino.link("a1b2c3d4e5")))
         assertTrue(texto.contains("Código do treino: a1b2c3d4e5"))
         assertEquals("a1b2c3d4e5", CodigoDoTreino.extrair(texto))

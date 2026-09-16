@@ -102,7 +102,10 @@ data class ProfileWriteDto(
 @JsonClass(generateAdapter = true)
 data class TreinosSugeridosParams(
     @Json(name = "p_data") val data: String,
-    @Json(name = "p_level") val level: String?
+    @Json(name = "p_level") val level: String?,
+    // Só vai no modo águas abertas (null não é enviado): o banco sem a migração de
+    // águas abertas continua respondendo o treino de piscina.
+    @Json(name = "p_modo") val modo: String? = null
 )
 
 @JsonClass(generateAdapter = true)

@@ -372,7 +372,9 @@ fun AquagendaApp(
                                 plano = estadoPlano.resumo,
                                 onPlanoClick = { plano.abrir(nivelDoPlano) },
                                 progresso = estadoProgresso.painel,
-                                onVerProgresso = { viewModel.selectTab(AppNavTab.PROFILE) }
+                                onVerProgresso = { viewModel.selectTab(AppNavTab.PROFILE) },
+                                selectedModo = uiState.selectedModo,
+                                onModoChange = { viewModel.selectModo(it) }
                             )
                         }
 

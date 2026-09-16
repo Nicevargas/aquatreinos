@@ -2,7 +2,9 @@
 
 Ideias pedidas em 16/09/2026 pela Nice e pelo professor. **Ainda não implementadas**: por enquanto só têm estimativa, na planilha `NatacaoCriativa-custos-e-publicacao.xlsx`, aba Melhorias.
 
-## Próxima fase
+## Feitas em 16/09/2026
+
+As duas abaixo já estão no app: o treino compartilhado vai com imagem e link (`nicevargas.github.io/natacao-treinos/treino.html#<código>`), e também dá para abrir colando o código em Meus treinos.
 
 ### 1. Editar o treino antes de nadar
 Na hora de entrar no treino, a pessoa troca ou tira uma série que não quer ou não consegue fazer.

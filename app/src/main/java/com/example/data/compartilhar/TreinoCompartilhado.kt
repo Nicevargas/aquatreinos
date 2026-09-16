@@ -57,12 +57,13 @@ object CodigoDoTreino {
 object MensagemDoTreino {
 
     fun paraCompartilhar(treino: Workout, codigo: String): String = buildString {
-        append("🏊 *").append(treino.title).append("*\n")
+        // Sem *negrito*: no WhatsApp vira negrito, mas no Instagram os asteriscos aparecem.
+        append("🏊 ").append(treino.title).append('\n')
         append(TextosDoTreino.metros(treino.totalDistanceMeters))
         append(" · ~").append(treino.estimatedMinutes).append(" min · ")
         append(TextosDoTreino.nivel(treino.level)).append('\n')
         treino.phases.forEach { fase ->
-            append("\n*").append(fase.title).append("* · ").append(TextosDoTreino.metros(fase.distanceMeters)).append('\n')
+            append('\n').append(fase.title).append(" · ").append(TextosDoTreino.metros(fase.distanceMeters)).append('\n')
             fase.sets.forEach { s ->
                 val serie = s.header.ifBlank { "${s.repsDistance}m ${s.description}".trim() }
                 append("• ").append(serie)

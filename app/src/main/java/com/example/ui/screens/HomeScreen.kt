@@ -68,6 +68,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.data.AquagendaConstants
 import com.example.model.CalendarDay
+import com.example.model.ModoDeTreino
 import com.example.model.TrainingLevel
 import com.example.model.Workout
 import com.example.data.plano.ResumoDoPlano
@@ -101,7 +102,9 @@ fun HomeScreen(
     plano: ResumoDoPlano? = null,
     onPlanoClick: () -> Unit = {},
     progresso: PainelDoProgresso? = null,
-    onVerProgresso: () -> Unit = {}
+    onVerProgresso: () -> Unit = {},
+    selectedModo: ModoDeTreino = ModoDeTreino.PISCINA,
+    onModoChange: (ModoDeTreino) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -126,11 +129,43 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Nível logo acima do treino: trocar o nível troca o cartão de baixo.
+        // Piscina ou águas abertas, e o nível: trocar qualquer um troca o cartão de baixo.
+        ModoDeTreinoToggle(selectedModo = selectedModo, onModoChange = onModoChange)
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         TrainingLevelToggle(
             selectedLevel = selectedLevel,
             onLevelChange = onLevelChange
         )
+
+        if (!selectedModo.temTreinoPara(selectedLevel)) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("aviso_aguas_abertas_nivel"),
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFFFF7E6)
+            ) {
+                Text(
+                    text = "Os treinos de águas abertas começam no Condicionamento. Por enquanto, siga o treino de piscina abaixo.",
+                    fontSize = 13.sp,
+                    color = AquaTextPrimary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            }
+        } else if (selectedModo == ModoDeTreino.AGUAS_ABERTAS) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "Treinos que preparam para mar, lago e travessias. No mar ou no lago, nunca nade sozinho.",
+                fontSize = 12.sp,
+                color = AquaTextSecondary,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .testTag("dica_aguas_abertas")
+            )
+        }
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -588,6 +623,46 @@ private fun WorkoutMetricBentoCards(workout: Workout) {
                         modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+/** Piscina ou águas abertas: dois botões do mesmo tamanho, lado a lado. */
+@Composable
+private fun ModoDeTreinoToggle(
+    selectedModo: ModoDeTreino,
+    onModoChange: (ModoDeTreino) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .border(1.dp, AquaBorder, RoundedCornerShape(16.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        ModoDeTreino.entries.forEach { modo ->
+            val escolhido = modo == selectedModo
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (escolhido) AquaPrimary else Color.Transparent)
+                    .clickable { onModoChange(modo) }
+                    .padding(vertical = 10.dp)
+                    .testTag("modo_${modo.name.lowercase()}"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = modo.label,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (escolhido) Color.White else AquaTextPrimary,
+                    maxLines = 1,
+                    softWrap = false
+                )
             }
         }
     }

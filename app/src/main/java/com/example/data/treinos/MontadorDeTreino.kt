@@ -255,9 +255,11 @@ object MontadorDeTreino {
     }
 
     // Treinos salvos antes do Método NC usam Aquecimento, Preparatória, Principal, Final e Soltura.
+    // Os de águas abertas têm 7 partes: Respiração abre o treino; Corretivos e Pernas + braço preparam.
     private fun faseDoTitulo(titulo: String): String = when (titulo.trim().lowercase()) {
-        "ativação", "ativacao", "aquecimento" -> "Ativação"
-        "preparação", "preparacao", "preparatória", "preparatoria" -> "Preparação"
+        "ativação", "ativacao", "aquecimento", "respiração", "respiracao" -> "Ativação"
+        "preparação", "preparacao", "preparatória", "preparatoria",
+        "corretivos", "pernas + braço", "pernas + braco" -> "Preparação"
         "desenvolvimento", "principal" -> "Desenvolvimento"
         "consolidação", "consolidacao" -> "Consolidação"
         else -> "Recuperação"

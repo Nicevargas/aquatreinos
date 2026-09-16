@@ -3,6 +3,7 @@ package com.example.data.supabase
 import android.util.Log
 import com.example.data.ciclo.DataCivil
 import com.example.model.CompletedSetRecord
+import com.example.model.ModoDeTreino
 import com.example.model.TrainingLevel
 import com.example.model.Workout
 import kotlinx.coroutines.Dispatchers
@@ -43,10 +44,18 @@ object SupabaseRepository {
      * Treino sugerido para a data e o nível, vindo de public.treinos_sugeridos.
      * Null sem Supabase ou em falha: quem chama fica com a cópia embarcada.
      */
-    suspend fun getTreinoSugerido(epochDay: Long, level: TrainingLevel): Workout? = withContext(Dispatchers.IO) {
+    suspend fun getTreinoSugerido(
+        epochDay: Long,
+        level: TrainingLevel,
+        modo: ModoDeTreino = ModoDeTreino.PISCINA
+    ): Workout? = withContext(Dispatchers.IO) {
         val api = SupabaseClient.api ?: return@withContext null
         try {
-            val params = TreinosSugeridosParams(data = DataCivil.paraIso(epochDay), level = level.name)
+            val params = TreinosSugeridosParams(
+                data = DataCivil.paraIso(epochDay),
+                level = level.name,
+                modo = modo.valorNoBanco.takeIf { modo != ModoDeTreino.PISCINA }
+            )
             val response = api.getTreinosSugeridos(params)
             if (response.isSuccessful) {
                 response.body()?.firstOrNull()?.toDomain()

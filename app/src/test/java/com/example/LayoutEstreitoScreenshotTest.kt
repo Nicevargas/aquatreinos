@@ -26,6 +26,7 @@ import com.example.data.treinos.Montagem
 import com.example.model.AppNavTab
 import com.example.data.progresso.Atividade
 import com.example.data.progresso.Progresso
+import com.example.model.ModoDeTreino
 import com.example.model.TrainingLevel
 import com.example.ui.components.AppTopBar
 import com.example.ui.components.BottomNavBar
@@ -135,6 +136,29 @@ class LayoutEstreitoScreenshotTest {
                 progresso = painel
             )
         }
+    }
+
+    @Test
+    fun home_aguas_abertas() = capturar("home_aguas_abertas.png") {
+        HomeScreen(
+            workout = CicloDeTreinos.deJson(File("src/main/assets/programa_aa.json").readText())
+                .sugestao(dia, TrainingLevel.INTERMEDIARIO)!!,
+            selectedLevel = TrainingLevel.INTERMEDIARIO,
+            calendarDays = WorkoutRepository.diasDoCalendario(DataCivil.deIso("2026-10-03"), dia),
+            onDayClick = {}, onLevelChange = {}, onStartWorkoutClick = {}, onViewWorkoutDetails = {},
+            selectedModo = ModoDeTreino.AGUAS_ABERTAS
+        )
+    }
+
+    @Test
+    fun home_aguas_abertas_sem_nivel() = capturar("home_aguas_abertas_pre.png") {
+        HomeScreen(
+            workout = ciclo.sugestao(dia, TrainingLevel.INICIANTE)!!,
+            selectedLevel = TrainingLevel.INICIANTE,
+            calendarDays = WorkoutRepository.diasDoCalendario(DataCivil.deIso("2026-10-03"), dia),
+            onDayClick = {}, onLevelChange = {}, onStartWorkoutClick = {}, onViewWorkoutDetails = {},
+            selectedModo = ModoDeTreino.AGUAS_ABERTAS
+        )
     }
 
     @Test

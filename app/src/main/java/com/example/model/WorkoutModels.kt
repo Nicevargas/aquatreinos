@@ -8,6 +8,17 @@ enum class TrainingLevel(val label: String, val carouselLabel: String) {
     AVANCADO("Aperfeiçoamento", "Técnica consolidada e ritmo controlado")
 }
 
+/**
+ * Qual programa diário a pessoa segue. Águas abertas são treinos na piscina que
+ * preparam mar, lago e travessias, só a partir do Condicionamento.
+ */
+enum class ModoDeTreino(val label: String, val valorNoBanco: String) {
+    PISCINA("Piscina", "piscina"),
+    AGUAS_ABERTAS("Águas abertas", "aguas_abertas");
+
+    fun temTreinoPara(level: TrainingLevel): Boolean = this == PISCINA || level != TrainingLevel.INICIANTE
+}
+
 data class CalendarDay(
     val dayOfWeek: String,
     val dayNumber: Int,
