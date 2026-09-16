@@ -13,11 +13,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Treino pronto para sair pelo menu de compartilhar: vira imagem + mensagem com o link. */
+data class EnvioDoTreino(val treino: Workout, val codigo: String, val mensagem: String)
+
 data class CompartilharTreinoUiState(
     val gerando: Boolean = false,
     val abrindo: Boolean = false,
-    // Mensagem pronta para a janela de compartilhar do Android (a tela consome e limpa).
-    val textoParaEnviar: String? = null,
+    // Pronto para a janela de compartilhar do Android (a tela consome e limpa).
+    val envio: EnvioDoTreino? = null,
     // Treino aberto pelo link ou código (a tela consome e limpa).
     val treinoRecebido: Workout? = null,
     val mensagem: String? = null
@@ -35,7 +38,7 @@ class CompartilharTreinoViewModel : ViewModel() {
         viewModelScope.launch {
             when (val r = TreinosCompartilhadosRepository.compartilhar(treino)) {
                 is Resultado.Ok -> _ui.update {
-                    it.copy(gerando = false, textoParaEnviar = MensagemDoTreino.paraCompartilhar(treino, r.valor))
+                    it.copy(gerando = false, envio = EnvioDoTreino(treino, r.valor, MensagemDoTreino.paraCompartilhar(treino, r.valor)))
                 }
                 is Resultado.Falha -> _ui.update { it.copy(gerando = false, mensagem = r.mensagem) }
             }
@@ -43,7 +46,7 @@ class CompartilharTreinoViewModel : ViewModel() {
     }
 
     fun textoEnviado() {
-        _ui.update { it.copy(textoParaEnviar = null) }
+        _ui.update { it.copy(envio = null) }
     }
 
     /** [linkOuCodigo]: o link, a mensagem colada inteira ou só o código. */

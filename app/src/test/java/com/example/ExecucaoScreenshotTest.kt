@@ -12,6 +12,7 @@ import com.example.data.execucao.RoteiroDeTreino
 import com.example.data.progresso.Conquista
 import com.example.data.progresso.SerieDeSemanas
 import com.example.model.TrainingLevel
+import com.example.ui.compartilhar.CartaoDoConvite
 import com.example.ui.compartilhar.CartaoDoTreino
 import com.example.ui.screens.ExecucaoDeTreinoScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -102,6 +103,20 @@ class ExecucaoScreenshotTest {
             val imagem = CartaoDoTreino.desenhar(resumo, formato)
             assertEquals(formato.largura, imagem.width)
             assertEquals(formato.altura, imagem.height)
+            FileOutputStream("src/test/screenshots/$arquivo").use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+    }
+
+    @Test
+    fun imagem_do_treino_para_compartilhar() {
+        listOf(
+            Triple("2026-09-15", TrainingLevel.INTERMEDIARIO, "cartao_convite.png"),
+            Triple("2026-10-01", TrainingLevel.AVANCADO, "cartao_convite_longo.png"),
+            Triple("2026-09-20", TrainingLevel.INICIANTE, "cartao_convite_inicio.png")
+        ).forEach { (dia, nivel, arquivo) ->
+            val treino = ciclo.sugestao(DataCivil.deIso(dia), nivel)!!
+            val imagem = CartaoDoConvite.desenhar(treino, "a1b2c3d4e5")
+            assertEquals(FormatoDoCartao.FEED.altura, imagem.height)
             FileOutputStream("src/test/screenshots/$arquivo").use { imagem.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
     }

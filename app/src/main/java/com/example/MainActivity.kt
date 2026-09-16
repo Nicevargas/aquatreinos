@@ -52,6 +52,7 @@ import com.example.ui.screens.EditorDeTreinoScreen
 import com.example.ui.screens.HomeScreen
 import androidx.compose.ui.platform.LocalContext
 import com.example.ui.compartilhar.compartilharTreino
+import com.example.ui.compartilhar.compartilharTreinoParaFazer
 import com.example.ui.screens.ExecucaoDeTreinoScreen
 import com.example.viewmodel.ExecucaoViewModel
 import com.example.ui.screens.MeusTreinosScreen
@@ -211,11 +212,10 @@ fun AquagendaApp(
         }
     }
 
-    // Mensagem do treino pronta: abre a janela de compartilhar do Android (WhatsApp, redes...).
-    LaunchedEffect(estadoCompartilhar.textoParaEnviar) {
-        estadoCompartilhar.textoParaEnviar?.let { texto ->
-            val envio = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, texto)
-            contexto.startActivity(Intent.createChooser(envio, "Compartilhar treino"))
+    // Treino pronto: abre a janela de compartilhar do Android (WhatsApp, redes...) com imagem e link.
+    LaunchedEffect(estadoCompartilhar.envio) {
+        estadoCompartilhar.envio?.let { envio ->
+            compartilharTreinoParaFazer(contexto, envio.treino, envio.codigo, envio.mensagem)
             compartilhar.textoEnviado()
         }
     }
