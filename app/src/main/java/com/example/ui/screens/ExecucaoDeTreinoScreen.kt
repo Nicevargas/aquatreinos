@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.compartilhar.FormatoDoCartao
 import com.example.data.compartilhar.ResumoDoTreino
 import com.example.data.compartilhar.TextosDoTreino
+import com.example.data.execucao.EscalaDeEsforco
 import com.example.data.execucao.PassoDeTreino
 import com.example.data.execucao.ProgressoExecucao
 import com.example.data.execucao.RoteiroDeTreino
@@ -87,6 +88,9 @@ import com.example.ui.compartilhar.CartaoDoTreino
 import com.example.data.treinos.MetodoNC
 import com.example.model.Corretivo
 import com.example.ui.components.AppTopBar
+import com.example.ui.components.CartaoMuitoBem
+import com.example.ui.components.QuandoVoltarANadar
+import com.example.data.ciclo.DataCivil
 import com.example.ui.components.EtiquetaDeZona
 import com.example.ui.components.MensagemDeTela
 import com.example.ui.theme.AquaYellowBg
@@ -129,7 +133,8 @@ fun ExecucaoDeTreinoScreen(
     onSalvar: () -> Unit,
     onCompartilhar: (FormatoDoCartao) -> Unit,
     onFechar: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLembrete: (Long) -> Unit = {}
 ) {
     val roteiro = estado.roteiro ?: return
 
@@ -147,7 +152,7 @@ fun ExecucaoDeTreinoScreen(
         EtapaExecucao.RESUMO -> TelaResumo(
             estado, roteiro, onIntensidade, onComplexidade, onObservacao, onSalvar, onVoltarAoTreino, modifier
         )
-        EtapaExecucao.PUBLICAR -> estado.resumo?.let { TelaPublicar(it, onCompartilhar, onFechar, modifier) }
+        EtapaExecucao.PUBLICAR -> estado.resumo?.let { TelaPublicar(it, estado, onCompartilhar, onLembrete, onFechar, modifier) }
     }
 }
 
@@ -921,14 +926,9 @@ private fun TelaResumo(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        NotaDeZeroADez(
-            titulo = "Intensidade",
-            descricao = "Quanto o treino puxou do seu corpo.",
+        PercepcaoDeEsforco(
             valor = estado.intensidade,
             onValor = onIntensidade,
-            minimo = "0 · muito leve",
-            maximo = "10 · no limite",
-            tag = "nota_intensidade",
             habilitado = !estado.salvando
         )
 
@@ -936,7 +936,7 @@ private fun TelaResumo(
 
         NotaDeZeroADez(
             titulo = "Complexidade",
-            descricao = "Quão difícil foi executar a técnica e as séries.",
+            descricao = "Opcional. Quão difícil foi executar a técnica e as séries.",
             valor = estado.complexidade,
             onValor = onComplexidade,
             minimo = "0 · muito simples",
@@ -1055,12 +1055,84 @@ private fun NotaDeZeroADez(
     }
 }
 
+/** PSE obrigatória: a escala do professor, com nome e cor de cada nota. */
+@Composable
+private fun PercepcaoDeEsforco(valor: Int?, onValor: (Int) -> Unit, habilitado: Boolean) {
+    Column {
+        Text("Percepção de esforço", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AquaTextPrimary)
+        Text(
+            text = "Obrigatória para salvar. Toque na nota que mostra o quanto o treino cansou você.",
+            fontSize = 12.sp,
+            color = AquaTextSecondary,
+            lineHeight = 17.sp
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp)
+                .testTag("nota_intensidade"),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            (0..10).forEach { nota ->
+                val cor = Color(EscalaDeEsforco.cor(nota))
+                val marcada = valor == nota
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(if (marcada) 44.dp else 36.dp)
+                        .align(Alignment.CenterVertically)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(cor)
+                        .then(if (marcada) Modifier.border(2.dp, AquaTextPrimary, RoundedCornerShape(8.dp)) else Modifier)
+                        .clickable(enabled = habilitado) { onValor(nota) }
+                        .testTag("pse_$nota"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$nota",
+                        fontSize = 13.sp,
+                        fontWeight = if (marcada) FontWeight.Black else FontWeight.Bold,
+                        color = if (EscalaDeEsforco.textoClaro(nota)) Color.White else AquaTextPrimary,
+                        softWrap = false
+                    )
+                }
+            }
+        }
+
+        if (valor != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(EscalaDeEsforco.cor(valor))
+            ) {
+                Text(
+                    text = EscalaDeEsforco.rotulo(valor).uppercase(),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Black,
+                    color = if (EscalaDeEsforco.textoClaro(valor)) Color.White else AquaTextPrimary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            }
+        } else {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("0 · ${EscalaDeEsforco.nome(0)}", fontSize = 11.sp, color = AquaTextMuted)
+                Text("10 · ${EscalaDeEsforco.nome(10)}", fontSize = 11.sp, color = AquaTextMuted)
+            }
+        }
+    }
+}
+
 // ------------------------------------------------------------------ publicar
 
 @Composable
 private fun TelaPublicar(
     resumo: ResumoDoTreino,
+    estado: ExecucaoUiState,
     onCompartilhar: (FormatoDoCartao) -> Unit,
+    onLembrete: (Long) -> Unit,
     onFechar: () -> Unit,
     modifier: Modifier
 ) {
@@ -1094,6 +1166,21 @@ private fun TelaPublicar(
                 .fillMaxWidth()
                 .padding(top = 4.dp)
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CartaoMuitoBem(
+            resumo = resumo,
+            serie = estado.serie,
+            estendeuSerie = estado.estendeuSerie,
+            conquistas = estado.conquistasNovas,
+            pontos = estado.pontosGanhos,
+            nivel = estado.nivelDePontos
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        QuandoVoltarANadar(hoje = DataCivil.hoje(), onEscolher = onLembrete)
 
         Spacer(modifier = Modifier.height(16.dp))
 

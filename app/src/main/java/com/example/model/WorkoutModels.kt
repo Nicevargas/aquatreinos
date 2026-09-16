@@ -72,7 +72,9 @@ data class Workout(
     // Método NC: objetivo do dia, zona predominante e o que ajustar se a sessão fugir do plano.
     val objetivo: String? = null,
     val zona: String? = null,
-    val ajuste: String? = null
+    val ajuste: String? = null,
+    // Treino que faz parte de um plano de treino: concluído, conta no progresso do plano.
+    val plano: ReferenciaDoPlano? = null
 ) {
     /** Material usado em alguma série, na ordem em que aparece. */
     val equipment: List<String>
@@ -84,16 +86,15 @@ data class Workout(
             .distinctBy { it.lowercase() }
 }
 
+/** Plano (public.planos_treino), semana e número do treino dentro dela. */
+data class ReferenciaDoPlano(val planoId: String, val semana: Int, val treino: Int)
+
 enum class AppNavTab(val title: String) {
     HOME("Home"),
+    PLAN("Plano"),
     WORKOUTS("Treinos"),
     MY_WORKOUTS("Meus treinos"),
     PROFILE("Perfil")
-}
-
-enum class StopwatchMode(val label: String) {
-    SERIE("Nado (Série)"),
-    DESCANSO("Descanso")
 }
 
 data class CompletedSetRecord(
@@ -102,23 +103,4 @@ data class CompletedSetRecord(
     val pacePer100m: String,
     val splitDifference: String = "",
     val timeMillis: Long = 0L
-)
-
-data class SwimSetStopwatchState(
-    val isRunning: Boolean = false,
-    val elapsedMillis: Long = 48500L, // Initial sample time for realistic visual display (00:48.5)
-    val currentSetNumber: Int = 5,
-    val totalSets: Int = 8,
-    val setRepDescription: String = "8x100m Crawl",
-    val setDistanceMeters: Int = 100,
-    val targetIntervalSeconds: Int = 105, // 1'45" (105 seconds)
-    val restDurationSeconds: Int = 30, // 30s
-    val mode: StopwatchMode = StopwatchMode.SERIE,
-    val completedLaps: List<CompletedSetRecord> = listOf(
-        CompletedSetRecord(setNumber = 4, timeFormatted = "01:21.2", pacePer100m = "1'21\"/100m", splitDifference = "-0.7s", timeMillis = 81200L),
-        CompletedSetRecord(setNumber = 3, timeFormatted = "01:21.9", pacePer100m = "1'21\"/100m", splitDifference = "-0.8s", timeMillis = 81900L),
-        CompletedSetRecord(setNumber = 2, timeFormatted = "01:22.7", pacePer100m = "1'22\"/100m", splitDifference = "-0.9s", timeMillis = 82700L),
-        CompletedSetRecord(setNumber = 1, timeFormatted = "01:23.6", pacePer100m = "1'23\"/100m", splitDifference = "Base", timeMillis = 83600L)
-    ),
-    val lastRecordedTime: String? = "01:21.2"
 )

@@ -8,21 +8,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Pool
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AppNavTab
@@ -62,52 +64,43 @@ fun BottomNavBar(
         color = Color.White.copy(alpha = 0.98f),
         border = androidx.compose.foundation.BorderStroke(1.dp, AquaBorder)
     ) {
+        // Cinco abas com a mesma largura: cabem em celular estreito sem empurrar a última para fora.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(vertical = 8.dp, horizontal = 8.dp),
+                .padding(vertical = 8.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            NavBarItem(
-                label = "Home",
-                selectedIcon = Icons.Filled.Home,
-                unselectedIcon = Icons.Outlined.Home,
-                isSelected = selectedTab == AppNavTab.HOME,
-                testTag = "nav_tab_home",
-                onClick = { onTabSelected(AppNavTab.HOME) }
-            )
-
-            NavBarItem(
-                label = "Treinos",
-                selectedIcon = Icons.Filled.Pool,
-                unselectedIcon = Icons.Outlined.Pool,
-                isSelected = selectedTab == AppNavTab.WORKOUTS,
-                testTag = "nav_tab_workouts",
-                onClick = { onTabSelected(AppNavTab.WORKOUTS) }
-            )
-
-            NavBarItem(
-                label = "Meus treinos",
-                selectedIcon = Icons.Filled.Bookmark,
-                unselectedIcon = Icons.Outlined.BookmarkBorder,
-                isSelected = selectedTab == AppNavTab.MY_WORKOUTS,
-                testTag = "nav_tab_my_workouts",
-                onClick = { onTabSelected(AppNavTab.MY_WORKOUTS) }
-            )
-
-            NavBarItem(
-                label = "Perfil",
-                selectedIcon = Icons.Filled.Person,
-                unselectedIcon = Icons.Outlined.Person,
-                isSelected = selectedTab == AppNavTab.PROFILE,
-                testTag = "nav_tab_profile",
-                onClick = { onTabSelected(AppNavTab.PROFILE) }
-            )
+            listOf(
+                Aba(AppNavTab.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home, "nav_tab_home"),
+                Aba(AppNavTab.PLAN, "Plano", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, "nav_tab_plan"),
+                Aba(AppNavTab.WORKOUTS, "Treinos", Icons.Filled.Pool, Icons.Outlined.Pool, "nav_tab_workouts"),
+                Aba(AppNavTab.MY_WORKOUTS, "Meus treinos", Icons.Filled.Bookmark, Icons.Outlined.BookmarkBorder, "nav_tab_my_workouts"),
+                Aba(AppNavTab.PROFILE, "Perfil", Icons.Filled.Person, Icons.Outlined.Person, "nav_tab_profile")
+            ).forEach { aba ->
+                NavBarItem(
+                    label = aba.rotulo,
+                    selectedIcon = aba.icone,
+                    unselectedIcon = aba.iconeVazio,
+                    isSelected = selectedTab == aba.tab,
+                    testTag = aba.tag,
+                    onClick = { onTabSelected(aba.tab) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
+
+private data class Aba(
+    val tab: AppNavTab,
+    val rotulo: String,
+    val icone: ImageVector,
+    val iconeVazio: ImageVector,
+    val tag: String
+)
 
 @Composable
 private fun NavBarItem(
@@ -116,19 +109,20 @@ private fun NavBarItem(
     unselectedIcon: ImageVector,
     isSelected: Boolean,
     testTag: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 6.dp, vertical = 6.dp)
+            .padding(vertical = 6.dp)
             .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -137,7 +131,7 @@ private fun NavBarItem(
             modifier = Modifier
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (isSelected) AquaBlueBg else Color.Transparent)
-                .padding(horizontal = 14.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -153,8 +147,11 @@ private fun NavBarItem(
             fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = if (isSelected) AquaPrimary else AquaTextSecondary,
-            maxLines = 1,
-            softWrap = false,
+            // Duas linhas com letra grande: "Meus treinos" aparece inteiro em vez de "Meus tr…".
+            maxLines = 2,
+            lineHeight = 13.sp,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 2.dp)
         )
     }

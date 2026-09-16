@@ -22,7 +22,13 @@ data class TreinoRealizadoDto(
     @Json(name = "duracao_segundos") val duracaoSegundos: Int,
     @Json(name = "intensidade") val intensidade: Int? = null,
     @Json(name = "complexidade") val complexidade: Int? = null,
-    @Json(name = "observacao") val observacao: String? = null
+    @Json(name = "observacao") val observacao: String? = null,
+    // Treino de um plano: qual plano, semana e número do treino.
+    @Json(name = "plano_id") val planoId: String? = null,
+    @Json(name = "plano_semana") val planoSemana: Int? = null,
+    @Json(name = "plano_treino") val planoTreino: Int? = null,
+    // Só na leitura; no registro o banco preenche.
+    @Json(name = "created_at") val criadoEm: String? = null
 )
 
 object RegistroDoTreino {
@@ -41,10 +47,10 @@ object RegistroDoTreino {
         val treino = roteiro.workout
         return TreinoRealizadoDto(
             // As chaves estrangeiras só aceitam ids que existem no banco: sugestão
-            // do ciclo ("ciclo_d14_...") ou treino de Meus treinos (uuid). O treino
-            // de exemplo embarcado não é nenhum dos dois.
+            // do ciclo antigo ("ciclo_d14_...") ou do Método NC ("nc_d01_..."), ou
+            // treino de Meus treinos (uuid). O treino de exemplo embarcado não é nenhum.
             workoutId = treino.id.takeIf { !treino.isSuggestion && UUID.matches(it) },
-            treinoCicloId = treino.id.takeIf { treino.isSuggestion && it.startsWith("ciclo_") },
+            treinoCicloId = treino.id.takeIf { treino.isSuggestion && (it.startsWith("ciclo_") || it.startsWith("nc_")) },
             titulo = treino.title.take(200),
             foco = treino.focus,
             nivel = treino.level.name,
@@ -56,7 +62,10 @@ object RegistroDoTreino {
             duracaoSegundos = duracaoSegundos.coerceIn(0L, 86_400L).toInt(),
             intensidade = intensidade?.coerceIn(0, 10),
             complexidade = complexidade?.coerceIn(0, 10),
-            observacao = observacao.trim().take(500).ifEmpty { null }
+            observacao = observacao.trim().take(500).ifEmpty { null },
+            planoId = treino.plano?.planoId,
+            planoSemana = treino.plano?.semana,
+            planoTreino = treino.plano?.treino
         )
     }
 

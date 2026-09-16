@@ -244,7 +244,7 @@ fun SupabaseSyncBar(
             text = {
                 Column {
                     Text(
-                        text = "O aplicativo Aquagenda possui arquitetura híbrida com suporte completo ao Supabase e migrações SQL:",
+                        text = "O aplicativo Natação Criativa possui arquitetura híbrida com suporte completo ao Supabase e migrações SQL:",
                         fontSize = 13.sp,
                         color = AquaTextSecondary,
                         lineHeight = 18.sp

@@ -33,8 +33,8 @@ object TextosDoTreino {
 
     private val numeros = NumberFormat.getIntegerInstance(Locale.forLanguageTag("pt-BR"))
 
-    // Mesmas hashtags do carrossel, mais a do app.
-    const val HASHTAGS = "#CadaDia1Treino #NatacaoCriativa #TreinoDeNatacao #Natacao #Aquagenda"
+    // Mesmas hashtags do carrossel; a do app é a própria #NatacaoCriativa.
+    const val HASHTAGS = "#CadaDia1Treino #NatacaoCriativa #TreinoDeNatacao #Natacao"
 
     /** 1800 -> "1.800m" */
     fun metros(m: Int): String = numeros.format(m) + "m"

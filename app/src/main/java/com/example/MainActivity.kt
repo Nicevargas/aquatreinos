@@ -9,7 +9,27 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.unit.dp
+import com.example.ui.components.ParQCard
+import com.example.ui.screens.ParQScreen
+import com.example.viewmodel.ParQViewModel
+import com.example.viewmodel.PlanoViewModel
+import com.example.viewmodel.ProgressoViewModel
+import com.example.viewmodel.RankingViewModel
+import com.example.ui.screens.RankingScreen
+import com.example.data.lembrete.LembreteDeTreino
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.example.ui.screens.CriarPlanoScreen
+import com.example.ui.screens.PlanoDeTreinoScreen
+import com.example.ui.screens.SemPlanoDeTreino
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -100,16 +120,75 @@ fun AquagendaApp(
     estadoConta: ContaUiState,
     viewModel: AquagendaViewModel = viewModel(),
     meusTreinos: MeusTreinosViewModel = viewModel(),
-    execucao: ExecucaoViewModel = viewModel()
+    execucao: ExecucaoViewModel = viewModel(),
+    parq: ParQViewModel = viewModel(),
+    plano: PlanoViewModel = viewModel(),
+    progresso: ProgressoViewModel = viewModel(),
+    ranking: RankingViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val meus by meusTreinos.ui.collectAsStateWithLifecycle()
     val estadoExecucao by execucao.ui.collectAsStateWithLifecycle()
+    val estadoParQ by parq.ui.collectAsStateWithLifecycle()
+    val estadoPlano by plano.ui.collectAsStateWithLifecycle()
+    val estadoProgresso by progresso.ui.collectAsStateWithLifecycle()
+    val estadoRanking by ranking.ui.collectAsStateWithLifecycle()
+    val nivelDoPlano = estadoConta.perfil?.nivel ?: uiState.selectedLevel
     val contexto = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // "Quando você vai voltar a nadar?": no Android 13+ o aviso precisa da permissão de notificação.
+    val pedirPermissaoDeAviso = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val agendarLembrete: (Long) -> Unit = { dia ->
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pedirPermissaoDeAviso.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        LembreteDeTreino.agendar(contexto, dia)
+    }
+
     LaunchedEffect(estadoConta.sessao?.userId) {
         meusTreinos.definirUsuario(estadoConta.sessao?.userId)
+        parq.definirUsuario(estadoConta.sessao?.userId)
+        plano.definirUsuario(estadoConta.sessao?.userId)
+        progresso.definirUsuario(estadoConta.sessao?.userId)
+        ranking.definirUsuario(estadoConta.sessao?.userId)
+    }
+
+    LaunchedEffect(estadoRanking.mensagem) {
+        estadoRanking.mensagem?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            ranking.mensagemMostrada()
+        }
+    }
+
+    // Treino salvo e execução fechada: o plano marca o que foi feito e o progresso se atualiza.
+    LaunchedEffect(estadoExecucao.ativo) {
+        if (!estadoExecucao.ativo) {
+            plano.atualizarFeitos()
+            progresso.carregar()
+        }
+    }
+
+    LaunchedEffect(estadoPlano.mensagem) {
+        estadoPlano.mensagem?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            plano.mensagemMostrada()
+        }
+    }
+
+    // "Ver meu plano" ou plano recém-criado: o plano abre na aba Plano.
+    LaunchedEffect(estadoPlano.aberto) {
+        if (estadoPlano.aberto) {
+            plano.fechar()
+            viewModel.selectTab(AppNavTab.PLAN)
+        }
+    }
+
+    // Meus treinos podem entrar no plano no lugar de um treino do Método NC.
+    LaunchedEffect(meus.treinos) {
+        plano.definirMeusTreinos(meus.treinos)
     }
 
     // O nível do perfil vira o nível da sugestão do dia.
@@ -134,7 +213,17 @@ fun AquagendaApp(
 
     val editor = meus.editor
 
-    if (estadoExecucao.ativo) {
+    if (estadoParQ.aberto) {
+        // PAR-Q antes de treinar (ou "Minha saúde mudou", pelo Perfil).
+        ParQScreen(
+            estado = estadoParQ,
+            onResponder = parq::responder,
+            onDeclaracao = parq::marcarDeclaracao,
+            onTermo = parq::marcarTermo,
+            onEnviar = parq::enviar,
+            onFechar = parq::fechar
+        )
+    } else if (estadoExecucao.ativo) {
         // Execução ao vivo do treino escolhido -> concluir -> publicar
         ExecucaoDeTreinoScreen(
             estado = estadoExecucao,
@@ -151,7 +240,28 @@ fun AquagendaApp(
             onCompartilhar = { formato ->
                 estadoExecucao.resumo?.let { compartilharTreino(contexto, it, formato) }
             },
-            onFechar = execucao::encerrar
+            onFechar = execucao::encerrar,
+            onLembrete = agendarLembrete
+        )
+    } else if (estadoRanking.aberto) {
+        RankingScreen(
+            estado = estadoRanking,
+            onVoltar = ranking::fechar,
+            onFiltrar = ranking::filtrar,
+            onParticipar = { ranking.editarParticipacao(estadoConta.perfil?.nome.orEmpty()) },
+            onAlterarFormulario = ranking::alterarFormulario,
+            onSalvarFormulario = ranking::salvarParticipacao,
+            onCancelarFormulario = ranking::cancelarFormulario,
+            onSairDoRanking = ranking::sairDoRanking,
+            onTentarDeNovo = ranking::carregar
+        )
+    } else if (estadoPlano.assistente != null) {
+        CriarPlanoScreen(
+            assistente = estadoPlano.assistente!!,
+            onAlterar = plano::alterarAssistente,
+            onProximo = plano::avancar,
+            onVoltar = plano::voltarEtapa,
+            onFechar = plano::fecharAssistente
         )
     } else if (editor != null) {
         EditorDeTreinoScreen(
@@ -198,24 +308,51 @@ fun AquagendaApp(
                                 workout = uiState.currentWorkout,
                                 selectedLevel = uiState.selectedLevel,
                                 calendarDays = uiState.calendarDays,
-                                stopwatchState = uiState.stopwatch,
                                 onDayClick = { viewModel.selectDay(it) },
                                 onLevelChange = { viewModel.selectLevel(it) },
-                                onStartWorkoutClick = { execucao.iniciar(uiState.currentWorkout) },
+                                onStartWorkoutClick = { parq.antesDeTreinar { execucao.iniciar(uiState.currentWorkout) } },
                                 onViewWorkoutDetails = { viewModel.selectTab(AppNavTab.WORKOUTS) },
-                                onToggleStopwatch = { viewModel.toggleStopwatch() },
-                                onLapStopwatch = { viewModel.recordSetLap() },
-                                onResetStopwatch = { viewModel.resetStopwatch() },
-                                onStopwatchModeChange = { viewModel.setStopwatchMode(it) },
-                                onStopwatchPrevSet = { viewModel.decrementStopwatchSet() },
-                                onStopwatchNextSet = { viewModel.incrementStopwatchSet() }
+                                plano = estadoPlano.resumo,
+                                onPlanoClick = { plano.abrir(nivelDoPlano) },
+                                progresso = estadoProgresso.painel,
+                                onVerProgresso = { viewModel.selectTab(AppNavTab.PROFILE) }
                             )
+                        }
+
+                        AppNavTab.PLAN -> {
+                            if (estadoPlano.plano != null) {
+                                PlanoDeTreinoScreen(
+                                    estado = estadoPlano,
+                                    emAba = true,
+                                    onVoltar = { viewModel.selectTab(AppNavTab.HOME) },
+                                    onTreino = { treino ->
+                                        // O treino do plano vira o treino da vez, com os detalhes e o "Iniciar".
+                                        viewModel.usarTreino(treino.workout)
+                                        viewModel.selectTab(AppNavTab.WORKOUTS)
+                                    },
+                                    onNovoPlano = { plano.iniciarAssistente(nivelDoPlano) },
+                                    onExcluir = plano::pedirExclusao,
+                                    onConfirmarExclusao = plano::confirmarExclusao,
+                                    onCancelarExclusao = plano::cancelarExclusao,
+                                    onTentarDeNovo = plano::carregar,
+                                    onTrocar = plano::abrirTroca,
+                                    onEscolherTroca = plano::trocar,
+                                    onFecharTroca = plano::fecharTroca
+                                )
+                            } else {
+                                SemPlanoDeTreino(
+                                    carregando = estadoPlano.carregando,
+                                    erro = estadoPlano.erro,
+                                    onComecar = { plano.iniciarAssistente(nivelDoPlano) },
+                                    onTentarDeNovo = plano::carregar
+                                )
+                            }
                         }
 
                         AppNavTab.WORKOUTS -> {
                             WorkoutsScreen(
                                 workout = uiState.currentWorkout,
-                                onStartWorkoutClick = { execucao.iniciar(uiState.currentWorkout) },
+                                onStartWorkoutClick = { parq.antesDeTreinar { execucao.iniciar(uiState.currentWorkout) } },
                                 onSaveToMyWorkouts = { meusTreinos.salvarSugestao(uiState.currentWorkout) }
                             )
                         }
@@ -235,14 +372,24 @@ fun AquagendaApp(
 
                         AppNavTab.PROFILE -> {
                             ProfileScreen(
-                                onDownloadWorkoutClick = { viewModel.downloadWorkout() },
+                                progresso = estadoProgresso.painel,
+                                carregando = estadoProgresso.carregando,
+                                erro = estadoProgresso.erro,
+                                onTentarDeNovo = progresso::carregar,
+                                onAbrirRanking = ranking::abrir,
                                 cabecalho = {
-                                    ContaCard(
-                                        estado = estadoConta,
-                                        onSalvar = conta::salvarPerfil,
-                                        onSair = conta::sair,
-                                        onExcluirConta = conta::excluirConta
-                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        ContaCard(
+                                            estado = estadoConta,
+                                            onSalvar = conta::salvarPerfil,
+                                            onSair = conta::sair,
+                                            onExcluirConta = conta::excluirConta
+                                        )
+                                        ParQCard(
+                                            ultimoDia = estadoParQ.ultimoDia,
+                                            onResponder = parq::responderDeNovo
+                                        )
+                                    }
                                 }
                             )
                         }

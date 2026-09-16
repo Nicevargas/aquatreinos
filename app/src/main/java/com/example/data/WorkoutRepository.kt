@@ -25,6 +25,31 @@ object WorkoutRepository {
         }
     }
 
+    /**
+     * Dias do calendário rolável da tela inicial: de [semanasAntes] semanas antes
+     * até [semanasDepois] semanas depois da semana de hoje, sempre começando na
+     * segunda. Se o dia escolhido cair fora dessa janela, ela se estende até ele.
+     */
+    fun diasDoCalendario(
+        selecionado: Long,
+        hoje: Long = DataCivil.hoje(),
+        semanasAntes: Int = 4,
+        semanasDepois: Int = 8
+    ): List<CalendarDay> {
+        val segundaDeHoje = DataCivil.segundaDaSemana(hoje)
+        val inicio = minOf(segundaDeHoje - 7L * semanasAntes, DataCivil.segundaDaSemana(selecionado))
+        val fim = maxOf(segundaDeHoje + 7L * semanasDepois + 6, DataCivil.segundaDaSemana(selecionado) + 6)
+        return (inicio..fim).map { dia ->
+            CalendarDay(
+                dayOfWeek = DataCivil.sigla(dia),
+                dayNumber = DataCivil.civil(dia).third,
+                epochDay = dia,
+                isToday = dia == hoje,
+                isSelected = dia == selecionado
+            )
+        }
+    }
+
     fun getWorkoutForLevel(level: TrainingLevel): Workout {
         return if (level == TrainingLevel.INTERMEDIARIO) {
             Workout(

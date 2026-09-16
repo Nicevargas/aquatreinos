@@ -9,6 +9,8 @@ import com.example.data.compartilhar.FormatoDoCartao
 import com.example.data.execucao.ProgressoExecucao
 import com.example.data.execucao.RegistroDoTreino
 import com.example.data.execucao.RoteiroDeTreino
+import com.example.data.progresso.Conquista
+import com.example.data.progresso.SerieDeSemanas
 import com.example.model.TrainingLevel
 import com.example.ui.compartilhar.CartaoDoTreino
 import com.example.ui.screens.ExecucaoDeTreinoScreen
@@ -78,7 +80,9 @@ class ExecucaoScreenshotTest {
         tela(
             ExecucaoUiState(
                 ativo = true, roteiro = roteiro, progresso = ProgressoExecucao(roteiro.passos.size, 0),
-                etapa = EtapaExecucao.PUBLICAR, resumo = resumoCompleto
+                etapa = EtapaExecucao.PUBLICAR, resumo = resumoCompleto,
+                serie = SerieDeSemanas(3, true), estendeuSerie = true, pontosGanhos = 50, nivelDePontos = "Prata",
+                conquistasNovas = listOf(Conquista("treino-2000", "Treino de 2.000m", "Completou um treino de 2.000m.", DataCivil.deIso("2026-09-15")))
             ),
             "execucao_publicar.png"
         )

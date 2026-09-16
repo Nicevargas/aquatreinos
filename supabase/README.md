@@ -1,6 +1,6 @@
-# Aquagenda - Supabase Integration & Migrations
+# App Natação Criativa - Supabase Integration & Migrations
 
-Este diretório contém a estrutura completa de banco de dados, migrações e políticas de segurança (RLS) para o **Aquagenda**.
+Este diretório contém a estrutura completa de banco de dados, migrações e políticas de segurança (RLS) para o **app Natação Criativa**.
 
 ## Estrutura do Banco de Dados
 

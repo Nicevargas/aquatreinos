@@ -62,7 +62,7 @@ object CartaoDoTreino {
         // (4:5) é mais baixo e precisa ser compacto para caber as duas notas.
         var y = if (stories) 320f else 110f
 
-        y = texto(c, "AQUAGENDA", margem, y, 34f, CIANO, negrito = true, espaco = 0.3f)
+        y = texto(c, "NATAÇÃO CRIATIVA", margem, y, 34f, CIANO, negrito = true, espaco = 0.3f)
         y += 36f
         y = texto(c, if (r.completo) "TREINO CONCLUÍDO" else "TREINO REGISTRADO", margem, y, 46f, MAGENTA, negrito = true, espaco = 0.12f)
         y += 16f
@@ -103,7 +103,7 @@ object CartaoDoTreino {
             r.complexidade?.let { y = barraDeNota(c, "Complexidade", it, margem, y, largura) + entreNotas }
         }
 
-        val rodape = if (r.doCarrossel) "CADA DIA 1 TREINO · @natacaocriativa" else "Treino criado no Aquagenda"
+        val rodape = if (r.doCarrossel) "CADA DIA 1 TREINO · @natacaocriativa" else "Treino criado no app Natação Criativa"
         // O rodapé fica embaixo, mas nunca por cima do que já foi desenhado.
         val topoRodape = maxOf(h - if (stories) 330f else 110f, y + 24f)
         texto(c, rodape, margem, topoRodape, 38f, BRANCO, negrito = true, larguraMax = largura)

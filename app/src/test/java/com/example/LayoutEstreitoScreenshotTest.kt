@@ -24,11 +24,29 @@ import com.example.data.supabase.toDomain
 import com.example.data.treinos.MontadorDeTreino
 import com.example.data.treinos.Montagem
 import com.example.model.AppNavTab
-import com.example.model.SwimSetStopwatchState
+import com.example.data.progresso.Atividade
+import com.example.data.progresso.Progresso
 import com.example.model.TrainingLevel
 import com.example.ui.components.AppTopBar
 import com.example.ui.components.BottomNavBar
 import com.example.ui.components.ContaCard
+import com.example.ui.components.ParQCard
+import com.example.ui.screens.ParQScreen
+import com.example.viewmodel.ParQUiState
+import com.example.data.ranking.LinhaDoRanking
+import com.example.data.ranking.ParticipacaoDto
+import com.example.ui.screens.RankingScreen
+import com.example.viewmodel.FiltrosDoRanking
+import com.example.viewmodel.FormularioDoRanking
+import com.example.viewmodel.RankingUiState
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
+import com.example.data.plano.ConfigDoPlano
+import com.example.data.plano.PlanoDeTreino
+import com.example.data.plano.PlanoDto
+import com.example.ui.screens.PlanoDeTreinoScreen
+import com.example.ui.screens.SemPlanoDeTreino
+import com.example.viewmodel.PlanoUiState
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.EditorDeTreinoScreen
 import com.example.ui.screens.ExecucaoDeTreinoScreen
@@ -71,6 +89,17 @@ class LayoutEstreitoScreenshotTest {
     private val intermediario = ciclo.sugestao(dia, TrainingLevel.INTERMEDIARIO)!!
     private val roteiro = RoteiroDeTreino(intermediario)
 
+    // Histórico de exemplo: série de 3 semanas, prêmios e notas de esforço.
+    private val painel = Progresso.painel(
+        listOf(
+            Atividade("a1", DataCivil.deIso("2026-09-15"), "Técnica", "Técnica", 2000, 2940, true, true, 6),
+            Atividade("a2", DataCivil.deIso("2026-09-17"), "Resistência", "Resistência", 2300, 3300, true, false, 8),
+            Atividade("a3", DataCivil.deIso("2026-09-22"), "Velocidade", "Velocidade", 1890, 2700, true, true, 9),
+            Atividade("a4", DataCivil.deIso("2026-09-29"), "Força específica", "Força específica", 1500, 2400, false, false, 4)
+        ),
+        dia
+    )
+
     private fun capturar(arquivo: String, conteudo: @Composable () -> Unit) {
         composeTestRule.setContent {
             val atual = LocalDensity.current
@@ -101,11 +130,9 @@ class LayoutEstreitoScreenshotTest {
             HomeScreen(
                 workout = ciclo.sugestao(dia, TrainingLevel.INICIANTE)!!,
                 selectedLevel = TrainingLevel.INICIANTE,
-                calendarDays = WorkoutRepository.semanaDoCalendario(dia, dia),
-                stopwatchState = SwimSetStopwatchState(),
+                calendarDays = WorkoutRepository.diasDoCalendario(DataCivil.deIso("2026-10-03"), dia),
                 onDayClick = {}, onLevelChange = {}, onStartWorkoutClick = {}, onViewWorkoutDetails = {},
-                onToggleStopwatch = {}, onLapStopwatch = {}, onResetStopwatch = {},
-                onStopwatchModeChange = {}, onStopwatchPrevSet = {}, onStopwatchNextSet = {}
+                progresso = painel
             )
         }
     }
@@ -181,6 +208,79 @@ class LayoutEstreitoScreenshotTest {
     )
 
     @Test
+    fun parq_com_sim() = capturar("parq_com_sim.png") {
+        ParQScreen(
+            estado = ParQUiState(
+                aberto = true, vaiTreinar = true,
+                respostas = listOf(false, true, false, false, false, false, null),
+                termo = true
+            ),
+            onResponder = { _, _ -> }, onDeclaracao = {}, onTermo = {}, onEnviar = {}, onFechar = {}
+        )
+    }
+
+    @Test
+    fun parq_no_perfil() = capturar("parq_perfil.png") {
+        ParQCard(ultimoDia = DataCivil.deIso("2026-09-15"), onResponder = {}, hoje = dia)
+    }
+
+    @Test
+    fun plano_na_aba() = capturar("plano_aba.png") {
+        val config = ConfigDoPlano(6, 3, listOf("Resistência"), true, true, TrainingLevel.INICIANTE, mapOf("1-2" to PlanoDeTreino.trocaPorFoco("Estilos")))
+        val treinosNC = CicloDeTreinos.treinosDoJson(File("src/main/assets/programa_nc.json").readText())
+        Column {
+            PlanoDeTreinoScreen(
+                estado = PlanoUiState(
+                    plano = PlanoDto.de(config, manual = true).copy(id = "p1", trocas = config.trocas),
+                    semanas = PlanoDeTreino.montar(config, treinosNC, "p1"),
+                    feitos = setOf(1 to 1)
+                ),
+                emAba = true,
+                onVoltar = {}, onTreino = {}, onNovoPlano = {}, onExcluir = {},
+                onConfirmarExclusao = {}, onCancelarExclusao = {}, onTentarDeNovo = {},
+                modifier = Modifier.height(1900.dp)
+            )
+            BottomNavBar(selectedTab = AppNavTab.PLAN, onTabSelected = {})
+        }
+    }
+
+    @Test
+    fun sem_plano() = capturar("sem_plano.png") {
+        SemPlanoDeTreino(carregando = false, erro = null, onComecar = {}, onTentarDeNovo = {})
+    }
+
+    @Test
+    fun ranking() = capturar("ranking.png") {
+        RankingScreen(
+            estado = RankingUiState(
+                aberto = true,
+                participacao = ParticipacaoDto(publico = true, nome = "Ana S.", anoNascimento = 1990, sexo = "F", cidade = "São Paulo", local = "Clube Anhembi"),
+                filtros = FiltrosDoRanking(faixa = "30-39", soMinhaCidade = true),
+                linhas = listOf(
+                    LinhaDoRanking(1, "Mariana Albuquerque C.", 1240, 98_500, 42, 12, false),
+                    LinhaDoRanking(2, "Ana S.", 865, 64_200, 30, 10, true),
+                    LinhaDoRanking(3, "Rafa T.", 610, 45_000, 21, 8, false),
+                    LinhaDoRanking(4, "João P.", 120, 8_000, 4, 2, false)
+                )
+            ),
+            onVoltar = {}, onFiltrar = {}, onParticipar = {}, onAlterarFormulario = {},
+            onSalvarFormulario = {}, onCancelarFormulario = {}, onSairDoRanking = {}, onTentarDeNovo = {}
+        )
+    }
+
+    @Test
+    fun ranking_participar() = capturar("ranking_participar.png") {
+        RankingScreen(
+            estado = RankingUiState(
+                aberto = true,
+                formulario = FormularioDoRanking(nome = "Ana S.", ano = "1990", sexo = "F", cidade = "São Paulo", erro = "Marque que você aceita aparecer no ranking.")
+            ),
+            onVoltar = {}, onFiltrar = {}, onParticipar = {}, onAlterarFormulario = {},
+            onSalvarFormulario = {}, onCancelarFormulario = {}, onSairDoRanking = {}, onTentarDeNovo = {}
+        )
+    }
+
+    @Test
     fun login() = capturar("login.png") {
         AuthScreen(
             estado = ContaUiState(configurado = true, erro = "E-mail ou senha incorretos."),
@@ -214,7 +314,7 @@ class LayoutEstreitoScreenshotTest {
     @Test
     fun perfil() = capturar("perfil.png") {
         ProfileScreen(
-            onDownloadWorkoutClick = {},
+            progresso = painel,
             cabecalho = {
                 ContaCard(
                     estado = ContaUiState(

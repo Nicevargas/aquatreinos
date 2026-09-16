@@ -1,7 +1,10 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -93,11 +96,10 @@ fun AuthScreen(
     ) {
         Spacer(modifier = Modifier.height(40.dp))
 
-        Text(
-            text = "Aquagenda",
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Black,
-            color = AquaPrimary
+        Image(
+            painter = painterResource(R.drawable.natacao_criativa_logo),
+            contentDescription = "Natação Criativa",
+            modifier = Modifier.height(72.dp)
         )
         Text(
             text = if (cadastro) {

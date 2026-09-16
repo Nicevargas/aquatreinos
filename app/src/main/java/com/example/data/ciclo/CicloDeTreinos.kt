@@ -50,6 +50,10 @@ class CicloDeTreinos(
             Moshi.Builder().add(KotlinJsonAdapterFactory()).build().adapter(CicloDto::class.java)
         }
 
+        /** Os treinos do programa, sem data: é daqui que o plano de treino escolhe. */
+        fun treinosDoJson(json: String): List<WorkoutDto> =
+            requireNotNull(adapter.fromJson(json)) { "ciclo embarcado vazio" }.treinos
+
         fun deJson(json: String): CicloDeTreinos {
             val dto = requireNotNull(adapter.fromJson(json)) { "ciclo embarcado vazio" }
             return CicloDeTreinos(DataCivil.deIso(dto.ancora), dto.dias, dto.treinos)

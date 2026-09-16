@@ -11,6 +11,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import com.example.data.ciclo.DataCivil
+import com.example.data.progresso.Progresso
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -60,12 +68,13 @@ import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.example.data.AquagendaConstants
 import com.example.model.CalendarDay
-import com.example.model.StopwatchMode
-import com.example.model.SwimSetStopwatchState
 import com.example.model.TrainingLevel
 import com.example.model.Workout
-import com.example.ui.components.SwimSetHistoryChartCard
-import com.example.ui.components.SwimSetStopwatchCard
+import com.example.data.plano.ResumoDoPlano
+import com.example.data.progresso.PainelDoProgresso
+import com.example.ui.components.PlanoCard
+import com.example.ui.components.SuaSemanaCard
+import com.example.ui.components.UltimasAtividadesCard
 import com.example.ui.theme.AquaBlueBg
 import com.example.ui.theme.AquaBorder
 import com.example.ui.theme.AquaCyan
@@ -84,18 +93,15 @@ fun HomeScreen(
     workout: Workout,
     selectedLevel: TrainingLevel,
     calendarDays: List<CalendarDay>,
-    stopwatchState: SwimSetStopwatchState,
     onDayClick: (Long) -> Unit,
     onLevelChange: (TrainingLevel) -> Unit,
     onStartWorkoutClick: () -> Unit,
     onViewWorkoutDetails: () -> Unit,
-    onToggleStopwatch: () -> Unit,
-    onLapStopwatch: () -> Unit,
-    onResetStopwatch: () -> Unit,
-    onStopwatchModeChange: (StopwatchMode) -> Unit,
-    onStopwatchPrevSet: () -> Unit,
-    onStopwatchNextSet: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    plano: ResumoDoPlano? = null,
+    onPlanoClick: () -> Unit = {},
+    progresso: PainelDoProgresso? = null,
+    onVerProgresso: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -112,6 +118,11 @@ fun HomeScreen(
             days = calendarDays,
             onDayClick = onDayClick
         )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Plano de Treino em destaque, antes do treino do dia.
+        PlanoCard(resumo = plano, onClick = onPlanoClick)
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -141,26 +152,13 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Real-Time Swimming Set Stopwatch Component
-        SwimSetStopwatchCard(
-            stopwatchState = stopwatchState,
-            onToggleStartPause = onToggleStopwatch,
-            onLapSet = onLapStopwatch,
-            onReset = onResetStopwatch,
-            onModeChange = onStopwatchModeChange,
-            onPreviousSet = onStopwatchPrevSet,
-            onNextSet = onStopwatchNextSet
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Visual Chart: Swim Set History (Line Pace / Bar Time)
-        SwimSetHistoryChartCard(
-            completedLaps = stopwatchState.completedLaps,
-            targetPaceSeconds = 84f
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        // Semana, série e últimos treinos de verdade (treinos_realizados).
+        progresso?.let {
+            SuaSemanaCard(painel = it, onVerProgresso = onVerProgresso)
+            Spacer(modifier = Modifier.height(16.dp))
+            UltimasAtividadesCard(atividades = it.atividades.take(3), onVerTudo = onVerProgresso)
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // A barra de baixo já desconta a própria altura (innerPadding do Scaffold).
         Spacer(modifier = Modifier.height(4.dp))
@@ -237,17 +235,48 @@ private fun CalendarStrip(
     days: List<CalendarDay>,
     onDayClick: (Long) -> Unit
 ) {
-    // Semana inteira (seg a dom) sem rolagem: o domingo não pode ficar escondido
-    // fora da tela quando é o dia selecionado.
-    Row(
-        modifier = Modifier.fillMaxWidth(),
+    if (days.isEmpty()) return
+    val selecionado = days.indexOfFirst { it.isSelected }.coerceAtLeast(0)
+    val hoje = days.firstOrNull { it.isToday }
+    // Três dias antes do escolhido: ele fica perto do meio, com os vizinhos à vista.
+    val estado = rememberLazyListState(initialFirstVisibleItemIndex = (selecionado - 3).coerceAtLeast(0))
+    LaunchedEffect(days[selecionado].epochDay) {
+        estado.animateScrollToItem((selecionado - 3).coerceAtLeast(0))
+    }
+    val mesVisivel by remember(days) {
+        derivedStateOf { days[(estado.firstVisibleItemIndex + 3).coerceIn(0, days.lastIndex)].epochDay }
+    }
+
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        val (ano, mes, _) = DataCivil.civil(mesVisivel)
+        Text(
+            text = "${Progresso.nomeDoMes(mes).replaceFirstChar { it.uppercase() }} $ano",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = AquaTextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        if (hoje != null && !hoje.isSelected) {
+            TextButton(onClick = { onDayClick(hoje.epochDay) }, modifier = Modifier.testTag("calendario_hoje")) {
+                Text("Hoje", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
+    // Rola para semanas antes e depois; o dia escolhido abre o treino daquele dia.
+    LazyRow(
+        state = estado,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .testTag("calendario"),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        days.forEach { day ->
+        items(days, key = { it.epochDay }) { day ->
             val isSelected = day.isSelected
             Surface(
                 modifier = Modifier
-                    .weight(1f)
+                    .width(48.dp)
                     .height(80.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .clickable { onDayClick(day.epochDay) }

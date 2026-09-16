@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onRoot
 import com.example.data.WorkoutRepository
 import com.example.data.ciclo.CicloDeTreinos
 import com.example.data.ciclo.DataCivil
-import com.example.model.SwimSetStopwatchState
 import com.example.model.TrainingLevel
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.WorkoutsScreen
@@ -59,17 +58,10 @@ class TreinoSugeridoScreenshotTest {
                     workout = treino,
                     selectedLevel = TrainingLevel.INICIANTE,
                     calendarDays = WorkoutRepository.semanaDoCalendario(dia, dia),
-                    stopwatchState = SwimSetStopwatchState(),
                     onDayClick = {},
                     onLevelChange = {},
                     onStartWorkoutClick = {},
-                    onViewWorkoutDetails = {},
-                    onToggleStopwatch = {},
-                    onLapStopwatch = {},
-                    onResetStopwatch = {},
-                    onStopwatchModeChange = {},
-                    onStopwatchPrevSet = {},
-                    onStopwatchNextSet = {}
+                    onViewWorkoutDetails = {}
                 )
                 }
             }

@@ -7,4 +7,6 @@
 <full-backup-content>
     <include domain="sharedpref" path="." />
     <exclude domain="sharedpref" path="aquagenda_sessao.xml" />
+    <!-- Data do PAR-Q: dado de saúde; no aparelho novo o app confere no Supabase. -->
+    <exclude domain="sharedpref" path="parq_prontidao.xml" />
 </full-backup-content>

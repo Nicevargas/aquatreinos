@@ -10,7 +10,13 @@ import com.example.data.execucao.CronometroDeTreino
 import com.example.data.execucao.ProgressoExecucao
 import com.example.data.execucao.RegistroDoTreino
 import com.example.data.execucao.RoteiroDeTreino
+import com.example.data.execucao.TreinoRealizadoDto
 import com.example.data.execucao.TreinosRealizadosRepository
+import com.example.data.progresso.Conquista
+import com.example.data.progresso.Pontuacao
+import com.example.data.progresso.Progresso
+import com.example.data.progresso.SerieDeSemanas
+import com.example.data.progresso.paraAtividade
 import com.example.model.Workout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,7 +41,23 @@ data class ExecucaoUiState(
     val observacao: String = "",
     val salvando: Boolean = false,
     val erro: String? = null,
-    val resumo: ResumoDoTreino? = null
+    val resumo: ResumoDoTreino? = null,
+    // Depois de salvar: prêmios que este treino liberou e a série de semanas.
+    val conquistasNovas: List<Conquista> = emptyList(),
+    val serie: SerieDeSemanas? = null,
+    val estendeuSerie: Boolean = false,
+    // Gamificação: pontos que este treino somou e o nível com eles.
+    val pontosGanhos: Int? = null,
+    val nivelDePontos: String? = null
+)
+
+/** O que a tela de treino salvo comemora. */
+private data class Celebracao(
+    val conquistas: List<Conquista>,
+    val serie: SerieDeSemanas,
+    val estendeuSerie: Boolean,
+    val pontos: Int,
+    val nivel: String
 )
 
 /** Execução ao vivo do treino escolhido, "Concluir treino" e o resumo para publicar. */
@@ -122,16 +144,55 @@ class ExecucaoViewModel(
             _ui.update { it.copy(erro = "Nenhuma série foi marcada como feita. Volte ao treino ou saia sem salvar.") }
             return
         }
+        // A percepção de esforço é o que mostra ao professor o quanto o treino pesou.
+        if (registro.intensidade == null) {
+            _ui.update { it.copy(erro = "Marque sua percepção de esforço, de 0 a 10, para salvar o treino.") }
+            return
+        }
 
         _ui.update { it.copy(salvando = true, erro = null) }
         viewModelScope.launch {
             when (val r = TreinosRealizadosRepository.registrar(registro)) {
-                is Resultado.Ok -> _ui.update {
-                    it.copy(salvando = false, etapa = EtapaExecucao.PUBLICAR, resumo = RegistroDoTreino.resumo(r.valor, roteiro))
+                is Resultado.Ok -> {
+                    val celebracao = celebracao(r.valor)
+                    _ui.update {
+                        it.copy(
+                            salvando = false,
+                            etapa = EtapaExecucao.PUBLICAR,
+                            resumo = RegistroDoTreino.resumo(r.valor, roteiro),
+                            conquistasNovas = celebracao?.conquistas.orEmpty(),
+                            serie = celebracao?.serie,
+                            estendeuSerie = celebracao?.estendeuSerie ?: false,
+                            pontosGanhos = celebracao?.pontos,
+                            nivelDePontos = celebracao?.nivel
+                        )
+                    }
                 }
                 is Resultado.Falha -> _ui.update { it.copy(salvando = false, erro = r.mensagem) }
             }
         }
+    }
+
+    /**
+     * Prêmios novos, série e se ela cresceu, comparando o histórico com e sem o
+     * treino salvo. Sem conseguir ler o histórico, a tela de treino salvo aparece
+     * igual, só sem essa parte.
+     */
+    private suspend fun celebracao(salvo: TreinoRealizadoDto): Celebracao? {
+        val lista = (TreinosRealizadosRepository.listar() as? Resultado.Ok)?.valor ?: return null
+        val antes = lista.filter { it.id != salvo.id }.mapNotNull { it.paraAtividade() }
+        val depois = antes + listOfNotNull(salvo.paraAtividade())
+        val hoje = DataCivil.hoje()
+        val serieAntes = Progresso.serieDeSemanas(antes.map { it.dia }, hoje)
+        val serie = Progresso.serieDeSemanas(depois.map { it.dia }, hoje)
+        val pontosDepois = Pontuacao.total(depois)
+        return Celebracao(
+            conquistas = Progresso.novasConquistas(antes, depois),
+            serie = serie,
+            estendeuSerie = serie.semanas > serieAntes.semanas,
+            pontos = pontosDepois - Pontuacao.total(antes),
+            nivel = Pontuacao.nivel(pontosDepois).nome
+        )
     }
 
     /** Fecha a execução: depois de publicar, ou saindo sem salvar. */

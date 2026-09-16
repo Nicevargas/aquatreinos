@@ -1,13 +1,7 @@
 package com.example.data
 
 object AquagendaConstants {
-    // Direct image URLs provided in the HTML designs
-    const val URL_AQUAGENDA_LOGO =
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuAfKnhazNo3BDlsepgF5sSwCwmynnxTGRIy7zhFkgDWilWEF-X-lXOxYLdq8lBe5FFasH4KPaOBUiVo_fbfBXf81j8UlQX-SreH3LuRo4ptP0owq7s6F6T4xxn2znoDMHgfS6s9EYfO6u0Qd-Wu93JrTb_SkI3q6aafVLrcI6L_NrywSjMjuorKphqay8uv84CdQ-iLmwbEifBuwrPJvCpI4V5Ax8EH-Gq9w4AVyBjuD2N7LIhuYwUhlZxIaKf23o-vMAI"
-
-    // Alternative logo link from image 6
-    const val URL_AQUAGENDA_LOGO_ALT =
-        "https://lh3.googleusercontent.com/aida-public/AB6AXuA4xm0RdMerSugElsd2X7Aeglxx9lfXfrmM8d7_UE7Td4sipu8-bVNvFwKEmPk1tiUfu3CABX-S71E3ti08_tFULF8bcWGRl9_r3M0XNRvE7lnIR0zq0UK4PhIrieRt1iJjUPGDUZNrjz_z7e9PqN4wZbuukbftbduF0fQeI8JgMryaLSU49tKZvSmixG9tp0pFQlKbMqsyCbWjg3Lf2W2lwmL-O2qbJUD35bWUK8GyddX4PQbvjX4pAgQCd0d2ejie6Kw"
+    // O logo é embarcado (res/drawable-nodpi/natacao_criativa_logo.png); aqui ficam só as fotos.
 
     // Swimmer mid-stroke - Performance Day (Home Screen)
     const val URL_SWIMMER_HERO_HOME =
