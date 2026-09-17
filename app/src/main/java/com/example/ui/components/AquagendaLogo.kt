@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.R
 
-/** Logo da Natação Criativa no topo. Embarcado no app: aparece mesmo sem internet. */
+/** Logo "Natação Criativa Treinos" no topo. Embarcado no app: aparece mesmo sem internet. O ícone do app é outro (natacao_criativa_icone). */
 @Composable
 fun AquagendaLogo(
     modifier: Modifier = Modifier,
@@ -20,7 +20,7 @@ fun AquagendaLogo(
 ) {
     Image(
         painter = painterResource(R.drawable.natacao_criativa_logo),
-        contentDescription = "Natação Criativa",
+        contentDescription = "Natação Criativa Treinos",
         contentScale = ContentScale.Fit,
         alignment = Alignment.CenterStart,
         modifier = modifier

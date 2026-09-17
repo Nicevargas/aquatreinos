@@ -98,8 +98,8 @@ fun AuthScreen(
 
         Image(
             painter = painterResource(R.drawable.natacao_criativa_logo),
-            contentDescription = "Natação Criativa",
-            modifier = Modifier.height(72.dp)
+            contentDescription = "Natação Criativa Treinos",
+            modifier = Modifier.height(120.dp)
         )
         Text(
             text = if (cadastro) {

@@ -58,7 +58,7 @@ fun AppTopBar(
         ) {
             // Left Logo
             AquagendaLogo(
-                height = 34.dp,
+                height = 52.dp,
                 modifier = Modifier.weight(1f)
             )
 
